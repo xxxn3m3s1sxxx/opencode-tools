@@ -45,6 +45,9 @@ jobs:
       - name: impact smoke test
         run: python impact.py impact --json
 
+      - name: impact test suite (61)
+        run: python test_impact.py
+
       # ── Bundle check ──
       - name: bundle check
         run: python -c "import json; json.load(open('package.json')); print('[OK] package.json OK')"
