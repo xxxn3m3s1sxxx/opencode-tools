@@ -29,6 +29,9 @@ CPP_DEF_PATTERNS = [
     # Function: return_type func_name(args) {
     (r'(?:\w[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{',
      'function'),
+    # Function declaration: return_type func_name(args);
+    (r'(?:\w[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*;',
+     'function_decl'),
     # Variable assignment: type var = cast(...) or type var = call(...);
     (r'(?:\w[\w:<>*&]+\s+)([a-z_]\w*)\s*(?:=)', 'variable'),
     # Variable declaration without init
@@ -97,8 +100,14 @@ def _py_find_references(filepath, symbol):
     except SyntaxError:
         return matches
 
-    # Get all lines
     lines = source.split('\n')
+
+    # Track which Name positions are part of a Call to avoid double-count
+    call_name_lines = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id == symbol and hasattr(node.func, 'lineno'):
+                call_name_lines.add(node.func.lineno)
 
     for node in ast.walk(tree):
         line = node.lineno if hasattr(node, 'lineno') else 0
@@ -112,7 +121,7 @@ def _py_find_references(filepath, symbol):
                     'line': line,
                     'context': context.strip(),
                 })
-        elif isinstance(node, ast.Name) and node.id == symbol:
+        elif isinstance(node, ast.Name) and node.id == symbol and line not in call_name_lines:
             # Skip definitions (handled separately)
             is_def = False
             for parent in ast.walk(tree):
@@ -376,7 +385,10 @@ class ImpactAnalyzer:
         return sorted(callees, key=lambda r: r['line'])
 
     def infer_symbol(self, filepath, line_no):
-        """Infer symbol name at a given file:line."""
+        """Infer symbol name at a given file:line.
+
+        Priority: function/method call > class/function def > identifier.
+        """
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
@@ -388,14 +400,23 @@ class ImpactAnalyzer:
 
         line = lines[line_no - 1]
 
-        # Try to extract identifier at cursor
-        # First check if it's a function call/definition pattern
-        cpp_call = re.match(r'\s*(\w[\w:~]*)\s*\(', line)
-        if cpp_call:
-            return cpp_call.group(1)
+        # 1. Function call pattern: identifier(args)
+        call_match = re.search(r'([a-z_]\w*)\s*\(', line)
+        if call_match:
+            return call_match.group(1)
 
-        # Generic: find identifier under cursor (approximate)
-        ident = re.search(r'(\w[\w_]*)', line)
+        # 2. Class/function def pattern: def/class identifier
+        def_match = re.match(r'\s*(?:def|class)\s+(\w+)', line)
+        if def_match:
+            return def_match.group(1)
+
+        # 3. Assignment: target = 
+        assign_match = re.match(r'\s*(\w+)\s*=', line)
+        if assign_match:
+            return assign_match.group(1)
+
+        # 4. Generic: first word-like identifier
+        ident = re.search(r'(\w+)', line)
         if ident:
             return ident.group(1)
 
