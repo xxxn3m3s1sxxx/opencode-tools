@@ -509,7 +509,7 @@ def main():
 
     # Handle --version
     if cmd == '--version':
-        print('impact.py 0.1.0')
+        print('impact.py 0.1.1')
         return 0
     use_json = '--json' in args
     lang = 'all'

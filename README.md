@@ -94,8 +94,8 @@ opencode-tools/
 ## Test Status
 
 ```
-hashline: 130/130 ✅  (42 core + 22 regression + 39 stress + 27 deep)
-impact:   TBD
+hashline: 130/130  (42 core + 22 regression + 39 stress + 27 deep)
+impact:   61/61    (Python AST + C++ regex + CLI + edge cases)
 ```
 
 ## Why Separate Tools?
