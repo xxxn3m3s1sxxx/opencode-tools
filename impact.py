@@ -1,0 +1,604 @@
+#!/usr/bin/env python3
+"""impact — Change Impact Analyzer. Find definitions, references, and tests for any symbol.
+
+Commands:
+  impact def <symbol>        Find definition
+  impact refs <symbol>       Find all references
+  impact tests <symbol>      Find related test files
+  impact graph <symbol>      Show callers + callees
+  impact <file>:<line>       Infer symbol from context
+  impact <symbol>            Show def + refs + tests
+
+Options:
+  --json                     JSON output (for plugin)
+  --root DIR                 Project root (auto-detect)
+  --lang py|cpp|all          Filter by language
+"""
+import ast
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+# ─── C++ Pattern Definitions ──────────────────────────────────────────────
+
+CPP_DEF_PATTERNS = [
+    # Function: return_type func_name(args) {
+    (r'(?:\w[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{',
+     'function'),
+    # Variable assignment: type var = cast(...) or type var = call(...);
+    (r'(?:\w[\w:<>*&]+\s+)([a-z_]\w*)\s*(?:=)', 'variable'),
+    # Variable declaration without init
+    (r'(?:\w[\w:<>*&]+\s+)([a-z_]\w*)\s*;', 'variable_decl'),
+    # Method: Class::method
+    (r'(\w+)\s*::\s*(\w+)\s*\(', 'method'),
+    # Class/struct
+    (r'(?:class|struct)\s+(\w+)(?:\s*:\s*public\s+\w+)?\s*\{', 'class'),
+    # Macro: #define NAME
+    (r'#define\s+(\w+)', 'macro'),
+]
+
+# ─── Python AST Analysis ──────────────────────────────────────────────────
+
+
+def _py_find_definitions(filepath, symbol):
+    """Find all definitions in a Python file matching symbol."""
+    matches = []
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            source = f.read()
+        tree = ast.parse(source, filepath)
+    except SyntaxError:
+        return matches
+
+    for node in ast.walk(tree):
+        name = None
+        line = node.lineno if hasattr(node, 'lineno') else 0
+        kind = None
+
+        if isinstance(node, ast.FunctionDef):
+            name = node.name
+            kind = 'function'
+        elif isinstance(node, ast.AsyncFunctionDef):
+            name = node.name
+            kind = 'async_function'
+        elif isinstance(node, ast.ClassDef):
+            name = node.name
+            kind = 'class'
+        elif isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    name = t.id
+                    kind = 'variable'
+                    line = t.lineno
+                    break
+
+        if name and name == symbol:
+            matches.append({
+                'type': kind,
+                'name': name,
+                'file': str(filepath),
+                'line': line,
+            })
+
+    return matches
+
+
+def _py_find_references(filepath, symbol):
+    """Find all references to a symbol in a Python file."""
+    matches = []
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            source = f.read()
+        tree = ast.parse(source, filepath)
+    except SyntaxError:
+        return matches
+
+    # Get all lines
+    lines = source.split('\n')
+
+    for node in ast.walk(tree):
+        line = node.lineno if hasattr(node, 'lineno') else 0
+
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+            if node.func.id == symbol:
+                context = lines[line - 1][:120] if line <= len(lines) else ''
+                matches.append({
+                    'type': 'call',
+                    'file': str(filepath),
+                    'line': line,
+                    'context': context.strip(),
+                })
+        elif isinstance(node, ast.Name) and node.id == symbol:
+            # Skip definitions (handled separately)
+            is_def = False
+            for parent in ast.walk(tree):
+                if isinstance(parent, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
+                    if parent.name == symbol and hasattr(parent, 'lineno') and parent.lineno == node.lineno:
+                        is_def = True
+                        break
+            if not is_def:
+                context = lines[line - 1][:120] if line <= len(lines) else ''
+                matches.append({
+                    'type': 'reference',
+                    'file': str(filepath),
+                    'line': line,
+                    'context': context.strip(),
+                })
+        elif isinstance(node, ast.Attribute) and node.attr == symbol:
+            context = lines[line - 1][:120] if line <= len(lines) else ''
+            matches.append({
+                'type': 'attribute',
+                'file': str(filepath),
+                'line': line,
+                'context': context.strip(),
+            })
+
+    return matches
+
+
+# ─── C++ Heuristic Analysis ───────────────────────────────────────────────
+
+
+def _cpp_find_definitions(filepath, symbol):
+    """Find C++ definitions matching symbol using regex patterns."""
+    matches = []
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        source = ''.join(lines)
+    except (UnicodeDecodeError, OSError):
+        # Try binary mode for UTF-16 etc.
+        try:
+            with open(filepath, 'rb') as f:
+                raw = f.read()
+            source = raw.decode('utf-8', errors='replace')
+            lines = source.split('\n')
+        except OSError:
+            return matches
+
+    for pattern, kind in CPP_DEF_PATTERNS:
+        for m in re.finditer(pattern, source):
+            # Find which capture group has the name
+            name = m.group(1) if kind != 'method' else m.group(2)
+            if name == symbol:
+                line_no = source[:m.start()].count('\n') + 1
+                context = lines[line_no - 1][:120] if line_no <= len(lines) else ''
+                matches.append({
+                    'type': kind,
+                    'name': name,
+                    'file': str(filepath),
+                    'line': line_no,
+                    'context': context.strip(),
+                })
+
+    return matches
+
+
+# ─── Generic Reference Search (rg/grep) ──────────────────────────────────
+
+
+def _grep_find_references(filepath, symbol):
+    """Find all references to symbol in a file using regex."""
+    matches = []
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    except (UnicodeDecodeError, OSError):
+        try:
+            with open(filepath, 'rb') as f:
+                raw = f.read()
+            text = raw.decode('utf-8', errors='replace')
+            lines = text.split('\n')
+        except OSError:
+            return matches
+
+    # Word boundary matching
+    pattern = re.compile(r'\b' + re.escape(symbol) + r'\b')
+    for i, line in enumerate(lines, 1):
+        if pattern.search(line):
+            matches.append({
+                'type': 'reference',
+                'file': str(filepath),
+                'line': i,
+                'context': line[:120].strip(),
+            })
+
+    return matches
+
+
+# ─── File Type Detection ──────────────────────────────────────────────────
+
+
+def _is_python(filepath):
+    return filepath.endswith('.py')
+
+
+def _is_cpp(filepath):
+    ext = os.path.splitext(filepath)[1].lower()
+    return ext in ('.cpp', '.c', '.h', '.hpp', '.cc', '.cxx', '.hxx', '.hh')
+
+
+def _is_test_file(filepath):
+    name = os.path.basename(filepath)
+    return name.startswith('test_') or name.endswith('_test.py') or \
+           name.endswith('_test.cpp') or '_test.' in name or \
+           '/test_' in filepath.replace('\\', '/')
+
+
+def _is_source_file(filepath):
+    return _is_python(filepath) or _is_cpp(filepath)
+
+
+# ─── Core Analyzer ────────────────────────────────────────────────────────
+
+
+class ImpactAnalyzer:
+    def __init__(self, root_dir=None):
+        if root_dir is None:
+            root_dir = self._detect_root()
+        self.root = Path(root_dir).resolve()
+        self._file_cache = None
+
+    def _detect_root(self):
+        """Auto-detect project root via git."""
+        try:
+            result = subprocess.run(
+                ['git', 'rev-parse', '--show-toplevel'],
+                capture_output=True, text=True, timeout=5
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+        return os.getcwd()
+
+    def _walk_files(self, lang='all'):
+        """Walk all source files in project."""
+        if self._file_cache is not None:
+            return self._file_cache
+
+        files = []
+        for root, dirs, names in os.walk(self.root):
+            # Skip common non-source dirs
+            dirs[:] = [d for d in dirs if not d.startswith('.') and
+                       d not in ('__pycache__', 'node_modules', 'build',
+                                 '.git', '.eggs', 'env', 'venv')]
+            for name in names:
+                fpath = os.path.join(root, name)
+                if lang == 'py' and _is_python(fpath):
+                    files.append(fpath)
+                elif lang == 'cpp' and _is_cpp(fpath):
+                    files.append(fpath)
+                elif lang == 'all' and _is_source_file(fpath):
+                    files.append(fpath)
+
+        self._file_cache = files
+        return files
+
+    def find_definition(self, symbol, lang='all'):
+        """Find all definitions of a symbol (deduplicated by file+line)."""
+        results = []
+        for fp in self._walk_files(lang):
+            if _is_python(fp):
+                results.extend(_py_find_definitions(fp, symbol))
+            elif _is_cpp(fp):
+                results.extend(_cpp_find_definitions(fp, symbol))
+        # Deduplicate by file+line
+        seen = set()
+        unique = []
+        for r in sorted(results, key=lambda x: (x['file'], x['line'])):
+            key = (r['file'], r['line'], r['type'])
+            if key not in seen:
+                seen.add(key)
+                unique.append(r)
+        return unique
+
+    def find_references(self, symbol, lang='all'):
+        """Find all references to a symbol (deduplicated by file+line)."""
+        results = []
+        for fp in self._walk_files(lang):
+            if _is_python(fp):
+                results.extend(_py_find_references(fp, symbol))
+            elif _is_cpp(fp):
+                results.extend(_grep_find_references(fp, symbol))
+        seen = set()
+        unique = []
+        for r in sorted(results, key=lambda x: (x['file'], x['line'])):
+            key = (r['file'], r['line'])
+            if key not in seen:
+                seen.add(key)
+                unique.append(r)
+        return unique
+
+    def find_tests(self, symbol, lang='all'):
+        """Find test files referencing a symbol (deduplicated)."""
+        results = []
+        for fp in self._walk_files(lang):
+            if not _is_test_file(fp):
+                continue
+            if _is_python(fp):
+                results.extend(_py_find_references(fp, symbol))
+            elif _is_cpp(fp):
+                results.extend(_grep_find_references(fp, symbol))
+        seen = set()
+        unique = []
+        for r in sorted(results, key=lambda x: (x['file'], x['line'])):
+            key = (r['file'], r['line'])
+            if key not in seen:
+                seen.add(key)
+                unique.append(r)
+        return unique
+
+    def find_callees(self, symbol, lang='all'):
+        """Find what functions/methods are called by a definition (Python only)."""
+        # Find the definition first
+        defs = self.find_definition(symbol, lang)
+        if not defs:
+            return []
+
+        # Only Python AST can do this
+        callees = []
+        for d in defs:
+            if not _is_python(d['file']):
+                continue
+            try:
+                with open(d['file'], 'r', encoding='utf-8') as f:
+                    source = f.read()
+                tree = ast.parse(source, d['file'])
+            except SyntaxError:
+                continue
+
+            # Find the function/class node
+            for node in ast.walk(tree):
+                if hasattr(node, 'name') and node.name == symbol and \
+                   hasattr(node, 'lineno') and node.lineno == d['line']:
+                    # Walk this node's body for calls
+                    for child in ast.walk(node):
+                        if isinstance(child, ast.Call):
+                            if isinstance(child.func, ast.Name):
+                                callees.append({
+                                    'name': child.func.id,
+                                    'file': d['file'],
+                                    'line': child.lineno,
+                                })
+                            elif isinstance(child.func, ast.Attribute):
+                                callees.append({
+                                    'name': f"{child.func.value.id}.{child.func.attr}" if isinstance(child.func.value, ast.Name) else child.func.attr,
+                                    'file': d['file'],
+                                    'line': child.lineno,
+                                })
+                    break
+
+        return sorted(callees, key=lambda r: r['line'])
+
+    def infer_symbol(self, filepath, line_no):
+        """Infer symbol name at a given file:line."""
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+        except OSError:
+            return None
+
+        if line_no < 1 or line_no > len(lines):
+            return None
+
+        line = lines[line_no - 1]
+
+        # Try to extract identifier at cursor
+        # First check if it's a function call/definition pattern
+        cpp_call = re.match(r'\s*(\w[\w:~]*)\s*\(', line)
+        if cpp_call:
+            return cpp_call.group(1)
+
+        # Generic: find identifier under cursor (approximate)
+        ident = re.search(r'(\w[\w_]*)', line)
+        if ident:
+            return ident.group(1)
+
+        return None
+
+
+# ─── Formatters ───────────────────────────────────────────────────────────
+
+
+def _fmt_line_count(count):
+    s = 's' if count != 1 else ''
+    return f"{count} occurrence{s}"
+
+
+def format_pretty(symbol, defs, refs, tests, callees, root):
+    """Human-readable output."""
+    lines = []
+    lines.append(f"impact: `{symbol}`")
+    lines.append(f"  project: {root}")
+    lines.append("")
+
+    # Definitions
+    lines.append(f"  [def] {_fmt_line_count(len(defs))}")
+    for d in defs:
+        rel = os.path.relpath(d['file'], root)
+        ctx = d.get('context', '')
+        tc = f"  -- {ctx}" if ctx else ""
+        lines.append(f"    {rel}:{d['line']}  ({d['type']}){tc}")
+    if not defs:
+        lines.append("    (not found)")
+
+    # References (excluding definitions)
+    refs_only = [r for r in refs if r not in defs]
+    lines.append(f"")
+    lines.append(f"  [ref] {_fmt_line_count(len(refs_only))}")
+    for r in refs_only[:20]:
+        rel = os.path.relpath(r['file'], root)
+        ctx = r.get('context', '')
+        tc = f"  -- {ctx}" if ctx else ""
+        lines.append(f"    {rel}:{r['line']}{tc}")
+    if len(refs_only) > 20:
+        lines.append(f"    ... and {len(refs_only) - 20} more")
+
+    # Tests
+    lines.append(f"")
+    lines.append(f"  [test] {_fmt_line_count(len(tests))}")
+    for t in tests[:10]:
+        rel = os.path.relpath(t['file'], root)
+        ctx = t.get('context', '')
+        tc = f"  -- {ctx}" if ctx else ""
+        lines.append(f"    {rel}:{t['line']}{tc}")
+    if len(tests) > 10:
+        lines.append(f"    ... and {len(tests) - 10} more")
+
+    # Callees
+    if callees:
+        lines.append(f"")
+        lines.append(f"  [calls] {_fmt_line_count(len(callees))}")
+        for c in callees[:10]:
+            rel = os.path.relpath(c['file'], root)
+            lines.append(f"    {rel}:{c['line']}  -> {c['name']}")
+        if len(callees) > 10:
+            lines.append(f"    ... and {len(callees) - 10} more")
+
+    return '\n'.join(lines)
+
+
+def format_json(symbol, defs, refs, tests, callees, root):
+    """JSON output for plugin."""
+    return json.dumps({
+        'symbol': symbol,
+        'project': str(root),
+        'definitions': defs,
+        'references': refs,
+        'tests': tests,
+        'callees': callees,
+    }, indent=2)
+
+
+# ─── CLI ──────────────────────────────────────────────────────────────────
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
+        print(__doc__.strip())
+        return 0
+
+    args = sys.argv[1:]
+    cmd = args[0]
+
+    # Handle --version
+    if cmd == '--version':
+        print('impact.py 0.1.0')
+        return 0
+    use_json = '--json' in args
+    lang = 'all'
+    root_dir = None
+
+    # Parse flags
+    clean_args = []
+    for a in args:
+        if a == '--json':
+            continue
+        if a.startswith('--root='):
+            root_dir = a.split('=', 1)[1]
+            continue
+        if a.startswith('--lang='):
+            lang = a.split('=', 1)[1]
+            continue
+        if a == '--py':
+            lang = 'py'
+            continue
+        if a == '--cpp':
+            lang = 'cpp'
+            continue
+        clean_args.append(a)
+
+    analyzer = ImpactAnalyzer(root_dir)
+    symbol = None
+    file_line = None
+
+    # Parse command
+    if cmd in ('def', 'definition'):
+        if len(clean_args) < 2:
+            print("usage: impact def <symbol>")
+            return 1
+        symbol = clean_args[1]
+        defs = analyzer.find_definition(symbol, lang)
+        if use_json:
+            print(format_json(symbol, defs, [], [], [], analyzer.root))
+        else:
+            print(format_pretty(symbol, defs, [], [], [], analyzer.root))
+        return 0
+
+    elif cmd in ('ref', 'refs', 'references'):
+        if len(clean_args) < 2:
+            print("usage: impact refs <symbol>")
+            return 1
+        symbol = clean_args[1]
+        refs = analyzer.find_references(symbol, lang)
+        if use_json:
+            print(format_json(symbol, [], refs, [], [], analyzer.root))
+        else:
+            print(format_pretty(symbol, [], refs, [], [], analyzer.root))
+        return 0
+
+    elif cmd in ('test', 'tests'):
+        if len(clean_args) < 2:
+            print("usage: impact tests <symbol>")
+            return 1
+        symbol = clean_args[1]
+        tests = analyzer.find_tests(symbol, lang)
+        if use_json:
+            print(format_json(symbol, [], [], tests, [], analyzer.root))
+        else:
+            print(format_pretty(symbol, [], [], tests, [], analyzer.root))
+        return 0
+
+    elif cmd in ('graph', 'callees'):
+        if len(clean_args) < 2:
+            print("usage: impact graph <symbol>")
+            return 1
+        symbol = clean_args[1]
+        defs = analyzer.find_definition(symbol, lang)
+        refs = analyzer.find_references(symbol, lang)
+        tests = analyzer.find_tests(symbol, lang)
+        callees = analyzer.find_callees(symbol, lang)
+        if use_json:
+            print(format_json(symbol, defs, refs, tests, callees, analyzer.root))
+        else:
+            print(format_pretty(symbol, defs, refs, tests, callees, analyzer.root))
+        return 0
+
+    else:
+        # Default: show everything for a symbol
+        symbol = cmd
+
+        # Check if it's a file:line reference
+        if ':' in cmd:
+            parts = cmd.rsplit(':', 1)
+            maybe_file = parts[0]
+            maybe_line = parts[1]
+            if maybe_line.isdigit() and os.path.exists(maybe_file):
+                file_line = (maybe_file, int(maybe_line))
+                inferred = analyzer.infer_symbol(maybe_file, int(maybe_line))
+                if inferred:
+                    symbol = inferred
+                else:
+                    print(f"Cannot infer symbol at {cmd}")
+                    return 1
+
+        defs = analyzer.find_definition(symbol, lang)
+        refs = analyzer.find_references(symbol, lang)
+        tests = analyzer.find_tests(symbol, lang)
+        callees = analyzer.find_callees(symbol, lang)
+
+        if use_json:
+            print(format_json(symbol, defs, refs, tests, callees, analyzer.root))
+        else:
+            print(format_pretty(symbol, defs, refs, tests, callees, analyzer.root))
+
+        return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

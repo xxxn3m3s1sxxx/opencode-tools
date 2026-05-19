@@ -1,0 +1,50 @@
+name: opencode-tools CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      # ── Hashline tests ──
+      - name: hashline --version
+        run: python hashline.py --version
+
+      - name: hashline core tests (42)
+        run: python test_hashline.py
+
+      - name: hashline regression tests (22)
+        run: python regression_tests.py
+
+      - name: hashline stress tests (39)
+        run: python stress_test.py
+
+      - name: hashline deep edge tests (27)
+        run: python deeper_tests.py
+
+      # ── Impact tests ──
+      - name: impact --version
+        run: python impact.py --version
+
+      - name: impact smoke test
+        run: python impact.py impact --json
+
+      # ── Bundle check ──
+      - name: bundle check
+        run: python -c "import json; json.load(open('package.json')); print('[OK] package.json OK')"

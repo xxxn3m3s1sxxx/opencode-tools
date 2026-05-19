@@ -1,0 +1,21 @@
+{
+  "name": "opencode-tools",
+  "version": "0.1.0",
+  "description": "Reliability toolbox for AI-assisted coding — hashline + impact + more",
+  "keywords": ["opencode", "plugin", "hashline", "impact", "edit", "analysis"],
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "hashline.ts",
+    "hashline.py",
+    "impact.ts",
+    "impact.py",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "python hashline.py --version && python impact.py --version"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^0.1.0"
+  }
+}
