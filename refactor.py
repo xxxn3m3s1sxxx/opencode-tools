@@ -175,12 +175,14 @@ def main():
             dry_run = True; i += 1
         elif a == '--json':
             use_json = True; i += 1
+        elif a.startswith('--file='):
+            single_file = a.split('=', 1)[1]; i += 1
         elif a == '--file' and i + 1 < len(raw):
             single_file = raw[i + 1]; i += 2
-        elif a == '--root' and i + 1 < len(raw):
-            root = raw[i + 1]; i += 2
         elif a.startswith('--root='):
             root = a.split('=', 1)[1]; i += 1
+        elif a == '--root' and i + 1 < len(raw):
+            root = raw[i + 1]; i += 2
         elif a.startswith('-'):
             print(f"Unknown flag: {a}", file=sys.stderr); return 1
         elif old_name is None:
