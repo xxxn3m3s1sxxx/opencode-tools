@@ -1,91 +1,87 @@
 @echo off
-REM OpenCode Tools — Windows cmd installer
-REM 13 plugins + engines — edit, impact, verify, trace, rename, graph, changelog, search, lint, refactor
+REM OpenCode Tools — Combined installer (Windows cmd)
+REM
+REM Installs all OpenCode tools (hashline, impact, verify, trace, ...).
 REM
 REM Usage:
 REM   install.bat
-REM   install.bat "C:\path\to\project"
+REM   install.bat C:\atlas
 
 setlocal enabledelayedexpansion
 
-set REPO=https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main
-set TOOLS=utils hashline impact verify trace rename graph changelog search lint refactor
+set "REPO_BASE=https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
+set "TOOLS=hashline impact verify trace changelog graph lint refactor rename search"
 
-REM Detect OpenCode config dir
+REM --- Detect OpenCode config dir ---
 if defined XDG_CONFIG_HOME (
-    set OPDIR=%XDG_CONFIG_HOME%\opencode
+    set "OPCODE_DIR=%XDG_CONFIG_HOME%\opencode"
+) else if defined USERPROFILE (
+    set "OPCODE_DIR=%USERPROFILE%\.config\opencode"
 ) else if defined HOME (
-    set OPDIR=%HOME%\.config\opencode
+    set "OPCODE_DIR=%HOME%\.config\opencode"
 ) else (
-    set OPDIR=%USERPROFILE%\.config\opencode
+    set "OPCODE_DIR=%USERPROFILE%\.config\opencode"
 )
 
-REM Detect project root
-if "%~1"=="" (
-    for /f "delims=" %%i in ('git rev-parse --show-toplevel 2^>nul') do set PROJ=%%i
-    if not defined PROJ set PROJ=%CD%
+REM --- Detect project root ---
+if not "%1"=="" (
+    set "PROJECT=%1"
 ) else (
-    set PROJ=%~1
+    for /f "tokens=*" %%a in ('git rev-parse --show-toplevel 2^>nul') do set "PROJECT=%%a"
+    if not defined PROJECT set "PROJECT=%CD%"
 )
 
 echo.
-echo  +------------------------------------------+
-echo  ^|  OpenCode Tools Installer                ^|
-echo  ^|  13 plugins + engines                    ^|
-echo  +------------------------------------------+
+echo   +------------------------------------------+
+echo   ^|  OpenCode Tools Installer                ^|
+echo   ^|  13 tools for AI-assisted coding         ^|
+echo   +------------------------------------------+
 echo.
-echo  Config: %OPDIR%
-echo  Project: %PROJ%
+echo   Config: %OPCODE_DIR%
+echo   Project: %PROJECT%
 echo.
 
-if not exist "%OPDIR%\plugins\" mkdir "%OPDIR%\plugins"
+REM --- Install plugins ---
+if not exist "%OPCODE_DIR%\plugins" mkdir "%OPCODE_DIR%\plugins"
 
-REM Install plugins (TS files)
 for %%t in (%TOOLS%) do (
-    if exist "%%t.ts" (
-        copy /Y "%%t.ts" "%OPDIR%\plugins\%%t.ts" >nul
-        echo  [plugin] %%t -^> %OPDIR%\plugins\%%t.ts (local)
+    echo   [%%t] plugin...
+    powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.ts' -OutFile '%OPCODE_DIR%\plugins\%%t.ts' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
+    if exist "%OPCODE_DIR%\plugins\%%t.ts" (
+        echo     OK
     ) else (
-        echo  [plugin] %%t -^> downloading...
-        powershell -Command "Invoke-WebRequest -Uri '%REPO%/%%t.ts' -OutFile '%OPDIR%\plugins\%%t.ts'" >nul 2>&1
-        if exist "%OPDIR%\plugins\%%t.ts" (
-            echo  [plugin] %%t -^> downloaded
+        echo     SKIP (download failed)
+    )
+)
+
+REM --- Install engines ---
+for %%t in (%TOOLS%) do (
+    if not exist "%PROJECT%\%%t.py" (
+        echo   [%%t] engine...
+        powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.py' -OutFile '%PROJECT%\%%t.py' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
+        if exist "%PROJECT%\%%t.py" (
+            echo     OK
         ) else (
-            echo  [WARN] %%t download failed
+            echo     SKIP (download failed)
+        )
+    ) else (
+        echo   [%%t] engine exists
+    )
+)
+
+REM --- Verify ---
+echo.
+for %%t in (%TOOLS%) do (
+    if exist "%PROJECT%\%%t.py" (
+        python "%PROJECT%\%%t.py" --version >nul 2>&1
+        if !ERRORLEVEL! equ 0 (
+            for /f "tokens=*" %%v in ('python "%PROJECT%\%%t.py" --version 2^>^&1') do echo   %%t: %%v
         )
     )
 )
 
-REM Install engines (PY files)
-for %%t in (hashline impact verify trace rename graph changelog search lint refactor) do (
-    set "ENGINE_DEST=%PROJ%\%%t.py"
-    if exist "%%t.py" (
-        copy /Y "%%t.py" "!ENGINE_DEST!" >nul
-        echo  [engine] %%t -^> !ENGINE_DEST! (local)
-    ) else if not exist "!ENGINE_DEST!" (
-        echo  [engine] %%t -^> downloading...
-        powershell -Command "Invoke-WebRequest -Uri '%REPO%/%%t.py' -OutFile '!ENGINE_DEST!'" >nul 2>&1
-        if exist "!ENGINE_DEST!" (
-            echo  [engine] %%t -^> downloaded
-        ) else (
-            echo  [WARN] %%t download failed
-        )
-    ) else (
-        echo  [engine] %%t -^> !ENGINE_DEST! (exists)
-    )
-)
-
-REM Verify
 echo.
-for %%t in (hashline impact verify trace rename graph changelog search lint refactor) do (
-    python "%PROJ%\%%t.py" --version >nul 2>&1
-    if !errorlevel! equ 0 (
-        for /f "delims=" %%v in ('python "%PROJ%\%%t.py" --version 2^>^&1') do echo  %%v
-    ) else (
-        echo  [WARN] %%t: verify failed
-    )
-)
-
+echo   Tools installed! Restart OpenCode to activate.
 echo.
-echo  Tools installed! Restart OpenCode to activate.
+echo   Test: python %%PROJECT%%\test_hashline.py
 echo.

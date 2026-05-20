@@ -1,9 +1,12 @@
 # OpenCode Tools — Reliability Toolbox for AI-Assisted Development
 
-[![Tests](https://img.shields.io/badge/tools-13-brightgreen)]()
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
-[![Windows](https://img.shields.io/badge/windows-passing-brightgreen)]()
-[![Linux](https://img.shields.io/badge/linux-passing-brightgreen)]()
+[![Tools](https://img.shields.io/badge/tools-13-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Tests](https://img.shields.io/badge/tests-366-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Windows](https://img.shields.io/badge/windows-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
+[![Linux](https://img.shields.io/badge/linux-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
+[![macOS](https://img.shields.io/badge/macos-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 
 A collection of OpenCode plugins that solve real problems in AI-assisted coding.
 No external Python dependencies. Zero-fuss install.
