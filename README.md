@@ -22,7 +22,7 @@ verify atlas_api.cpp                          File summary (lines, hash)
 verify atlas_infer.py:612 --context 5         Context at line 612
 ```
 
-**Status:** Beta — 46 tests · post-edit confidence check
+**Status:** Beta — 48 tests · post-edit confidence check
 
 ### Hashline — Hash-Anchored Editing
 
@@ -52,6 +52,20 @@ impact graph generate_c     → 1 def · 1 ref · 20 callees
 
 **Status:** Beta — Python AST + C++ heuristics · needs real-world testing
 
+### Trace — Recursive Call Chain Analysis
+
+Follow execution paths through your codebase. Find who calls a function,
+what it calls, and build full call trees.
+
+```
+trace forward                 Trace forward() through the codebase
+trace generate_c --down -d 3  Deep dive into generate_c callees
+trace AtlasModel --up         Who references AtlasModel?
+trace load_model --viz        ASCII tree visualization
+```
+
+**Status:** Alpha — 28 tests · Python AST only, C++ via grep heuristics
+
 ## Quick Install
 
 ```bash
@@ -79,12 +93,14 @@ cp impact.py /path/to/project/
 ## Tools Added
 
 | Tool | Plugin | Engine | Purpose |
-|---|---|---|---|
+|---|---|---|---|---|
 | `edit()` | hashline.ts | hashline.py | Auto-fallback when string replace fails |
 | `hashline_edit()` | hashline.ts | hashline.py | Explicit hash-anchored edit |
 | `hashline_patch()` | hashline.ts | hashline.py | Raw hashline diff format |
 | `hashline_stats()` | hashline.ts | hashline.py | Show intervention rate |
 | `impact` | impact.ts | impact.py | Change impact analysis |
+| `verify` | verify.ts | verify.py | Post-edit verification |
+| `trace` | trace.ts | trace.py | Recursive call chain analysis |
 
 ## Project Structure
 
@@ -101,7 +117,10 @@ opencode-tools/
 ├── test_impact.py          # 61 tests
 ├── verify.py               # Verify engine (v0.1.0)
 ├── verify.ts               # Verify OpenCode plugin
-├── test_verify.py          # 46 tests
+├── test_verify.py          # 48 tests
+├── trace.py                # Trace engine (v0.1.0)
+├── trace.ts                # Trace OpenCode plugin
+├── test_trace.py           # 28 tests
 ├── install.sh              # Linux/macOS installer
 ├── install.ps1             # Windows installer
 ├── .github/workflows/ci.yml
@@ -113,8 +132,9 @@ opencode-tools/
 
 ```
 hashline: 130/130  (42 core + 22 regression + 39 stress + 27 deep)
-impact:   61/61    (Python AST + C++ regex + CLI + edge cases)
-verify:   46/46    (read, contains, context, replace, CLI, edge cases)
+impact:   63/63    (Python AST + C++ regex + CLI + edge cases)
+verify:   48/48    (read, contains, context, replace, CLI, edge cases)
+trace:    28/28    (call chain, callers/callees, CLI, viz)
 ```
 
 ## Why Separate Tools?

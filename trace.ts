@@ -1,5 +1,30 @@
-import { Tool } from "@opencode-ai/sdk";
+import type { Plugin } from "@opencode-ai/plugin";
+import { tool } from "@opencode-ai/plugin";
 import { spawnSync } from "child_process";
+
+let _python: string | null = null
+function detectPython(): string {
+  if (_python) return _python
+  const candidates = process.platform === "win32"
+    ? [["python"], ["py", "-3"], ["py"], ["python3"]]
+    : [["python3"], ["python"], ["py", "-3"], ["py"]]
+  for (const [cmd, ...args] of candidates) {
+    try {
+      const r = spawnSync(cmd, [...args, "-c", "import sys; print(sys.executable)"], { encoding: "utf-8", timeout: 3000 })
+      if (r.status === 0 && !r.error) {
+        const fp = (r.stdout || "").trim().split(/\r?\n/)[0].trim()
+        if (fp) { _python = fp; return fp }
+      }
+    } catch { /* try next */ }
+  }
+  _python = "python"; return _python
+}
+
+function splitArgs(cmd: string): string[] {
+  const args: string[] = []; const re = /[^\s"']+|"([^"]*)"|'([^']*)'/g; let m
+  while ((m = re.exec(cmd)) !== null) args.push(m[1] || m[2] || m[0])
+  return args
+}
 
 interface TraceCaller {
   type: string; caller: string; callee: string; file: string; line: number; context?: string;
@@ -13,6 +38,7 @@ interface TraceResult {
 }
 
 function relPath(file: string, root: string): string {
+  if (!root) return file;
   const rel = file.replace(root.replace(/\\/g, "/"), "").replace(/^[/\\]/, "");
   return rel || file;
 }
@@ -62,16 +88,19 @@ function formatOutput(symbol: string, data: TraceResult): string {
 }
 
 function runPy(args: string[], cwd: string): string {
-  const proc = spawnSync("python", ["trace.py", ...args, "--json"], { cwd, encoding: "utf-8", timeout: 30000 });
+  if (!args.includes("--json")) args.push("--json");
+  const proc = spawnSync(detectPython(), ["trace.py", ...args], { cwd, encoding: "utf-8", timeout: 30000 });
   if (proc.error) throw proc.error;
   if (proc.status !== 0) throw new Error(proc.stderr?.trim() || proc.stdout?.trim() || `exit ${proc.status}`);
   return proc.stdout;
 }
 
-export const tools: Tool[] = [
-  {
-    name: "trace",
-    description: `Recursive call chain analyzer. Follow execution paths through the codebase.
+export default (async () => {
+  const z = tool.schema
+  return {
+    tool: {
+      trace: tool({
+        description: `Recursive call chain analyzer. Follow execution paths through the codebase.
 
 Usage:
   trace <symbol> [-d N]         Show call chain N levels deep (default: 2)
@@ -83,31 +112,23 @@ Examples:
   trace forward                 Trace forward() through the codebase
   trace generate_c --down -d 3  Deep dive into generate_c callees
   trace AtlasModel --up         Who references AtlasModel`,
-
-    parameters: {
-      type: "object", properties: {
-        command: {
-          type: "string",
-          description: "Command (e.g. 'forward', 'generate_c --down -d 3', 'AtlasModel --up')",
+        args: {
+          command: z.string().describe("Command (e.g. 'forward', 'generate_c --down -d 3', 'AtlasModel --up')"),
         },
-      },
-      required: ["command"],
+        async execute({ command }: { command: string }, ctx: any) {
+          try {
+            const cwd = ctx?.cwd || process.cwd();
+            const args = splitArgs(command.trim().replace(/^trace(?:\.py)?\s+/, ""));
+            const symbol = args.filter((a: string) => !a.startsWith("-")).pop() || "unknown";
+            const stdout = runPy(args, cwd);
+            let data: TraceResult;
+            try { data = JSON.parse(stdout); } catch { return stdout; }
+            return formatOutput(symbol, data);
+          } catch (err: any) {
+            return `trace error: ${err.message}`;
+          }
+        },
+      }),
     },
-
-    execute: async ({ command }: { command: string }, context) => {
-      try {
-        const cwd = context?.cwd || process.cwd();
-        const args = command.trim().split(/\s+/);
-        const symbol = args.find((a: string) => !a.startsWith("-")) || "unknown";
-        const stdout = runPy(args, cwd);
-        let data: TraceResult;
-        try { data = JSON.parse(stdout); } catch { return { content: [{ type: "text", text: stdout }] }; }
-        return { content: [{ type: "text", text: formatOutput(symbol, data) }] };
-      } catch (err: any) {
-        return { content: [{ type: "text", text: `trace error: ${err.message}` }], isError: true };
-      }
-    },
-  },
-];
-
-export default { tools };
+  };
+}) satisfies Plugin;

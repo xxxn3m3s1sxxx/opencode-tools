@@ -23,15 +23,19 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 
 
 def _read_file(filepath):
     """Read file content, return (lines, raw)."""
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
             raw = f.read()
-        lines = raw.split('\n')
+        raw = raw.replace("\r\n", "\n")
+        lines = raw.split("\n") if raw else []
+        if lines and not lines[-1]:
+            lines = lines[:-1]
         return lines, raw
     except FileNotFoundError:
         return None, None
@@ -40,7 +44,7 @@ def _read_file(filepath):
             with open(filepath, 'rb') as f:
                 raw = f.read()
             text = raw.decode('utf-8', errors='replace')
-            return text.split('\n'), text
+            return text.splitlines(), text
         except OSError:
             return None, None
 
@@ -105,7 +109,6 @@ def cmd_context(filepath, lines, raw, target_line, context=3):
 def cmd_diff(filepath, staged=False, context_lines=3):
     """Show git diff for a file."""
     try:
-        import subprocess
         # Check if file is git-tracked
         ls = subprocess.run(['git', 'ls-files', '--error-unmatch', filepath],
                            capture_output=True, timeout=5)

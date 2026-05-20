@@ -320,8 +320,8 @@ def test_no_trailing_newline():
     try:
         r = run_hl(["read", p])
         check("no-newline read", r.returncode == 0, f"stderr: {r.stderr}")
-        check("no-newline no extra empty line", "pn" not in r.stdout.split("\n")[-1],
-              f"last line: {r.stdout.split(chr(10))[-1]!r}")
+        check("no-newline no extra empty line", len(r.stdout.strip().split("\n")) == 1,
+              f"output has {len(r.stdout.strip().split(chr(10)))} lines: {r.stdout!r}")
     finally:
         os.unlink(p)
 

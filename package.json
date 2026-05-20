@@ -17,10 +17,10 @@
     "README.md"
   ],
   "scripts": {
-    "test": "python hashline.py --version && python impact.py --version && python verify.py --version && python trace.py --version"
+    "test": "python test_hashline.py && python test_impact.py && python test_verify.py && python test_trace.py",
+    "test:quick": "python hashline.py --version && python impact.py --version && python verify.py --version && python trace.py --version"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^0.1.0",
-    "@opencode-ai/sdk": "^0.1.0"
+    "@opencode-ai/plugin": "^0.1.0"
   }
 }

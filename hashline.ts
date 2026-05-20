@@ -3,16 +3,12 @@ import { tool } from "@opencode-ai/plugin"
 import { tmpdir } from "os"
 import { randomUUID } from "crypto"
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from "fs"
-import { resolve, isAbsolute, dirname } from "path"
+import { resolve, isAbsolute, dirname, join } from "path"
 import { fileURLToPath } from "url"
 
 let pluginDir = ""
 try {
-  pluginDir = dirname(
-    typeof __filename !== "undefined"
-      ? __filename
-      : fileURLToPath(import.meta.url)
-  )
+  pluginDir = dirname(fileURLToPath(import.meta.url))
 } catch { /* import.meta not available */ }
 
 const z = tool.schema
@@ -29,16 +25,18 @@ async function which($: any, cmd: string): Promise<boolean> {
   try { return (await $`which ${cmd}`.quiet().nothrow()).exitCode === 0 } catch { return false }
 }
 
-export const HashlinePlugin: Plugin = async ({ $, worktree }) => {
-  const python = (await which($, "python3")) ? "python3" : "python"
-  const hlPy = [ `${worktree}/hashline.py`, ...(pluginDir ? [resolve(pluginDir, "hashline.py")] : []) ]
+const HashlinePlugin: Plugin = async ({ $, worktree }) => {
+  const python = process.platform === "win32"
+    ? (await which($, "python")) ? "python" : (await which($, "py")) ? "py" : "python3"
+    : (await which($, "python3")) ? "python3" : (await which($, "py")) ? "py" : "python"
+  const hlPy = [...(pluginDir ? [resolve(pluginDir, "hashline.py")] : []), `${worktree}/hashline.py`]
     .find(existsSync)
 
   let ok = false
-  try { ok = hlPy && (await $`${python} ${hlPy}`.quiet().nothrow()).exitCode === 1 } catch {}
+  try { ok = hlPy && (await $`${python} ${hlPy}`.quiet().nothrow()).exitCode === 1 } catch (e) { console.warn("[hashline] validation error:", e) }
   if (!ok) { console.warn("[hashline] hashline.py not found — disabled"); return {} }
 
-  function tmp(): string { return `${tmpdir()}/hl-${randomUUID().slice(0,8)}.tmp` }
+  function tmp(): string { return join(tmpdir(), `hl-${randomUUID().slice(0,8)}.tmp`) }
   function absPath(p: string, w: string): string {
     return isAbsolute(p) ? p : resolve(w, p)
   }
@@ -58,7 +56,7 @@ export const HashlinePlugin: Plugin = async ({ $, worktree }) => {
         "Edit a file by finding and replacing text. " +
         "Tries exact match first; on failure, auto-retries with hash-anchored matching.",
       args: {
-        filePath: z.string().describe("The absolute path to the file to modify"),
+        filePath: z.string().describe("The path to the file (absolute or worktree-relative)"),
         oldString: z.string().describe("The text to replace"),
         newString: z.string().describe("The text to replace it with"),
       },
@@ -68,7 +66,7 @@ export const HashlinePlugin: Plugin = async ({ $, worktree }) => {
 
         // Try direct edit first
         try {
-          const content = readFileSync(p, "utf-8")
+          const content = readFileSync(p, "utf-8").replace(/^\ufeff/, "")
           const idx = content.indexOf(a.oldString)
           if (idx !== -1) {
             const updated = content.slice(0, idx) + a.newString + content.slice(idx + a.oldString.length)
@@ -93,7 +91,7 @@ export const HashlinePlugin: Plugin = async ({ $, worktree }) => {
             throw new Error(
               `edit() failed (${strip(e0)}). ` +
               `hashline fallback also failed (${strip(e1)}). ` +
-              `Try hashline_edit() with different old text.`
+              `Try a smaller matching segment, or check file for whitespace differences.`
             )
           } finally {
             try { unlinkSync(of) } catch {}; try { unlinkSync(nf) } catch {}
@@ -178,3 +176,5 @@ export const HashlinePlugin: Plugin = async ({ $, worktree }) => {
     },
   }
 }
+
+export default HashlinePlugin

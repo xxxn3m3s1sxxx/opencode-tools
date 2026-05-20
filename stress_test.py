@@ -7,7 +7,13 @@ import subprocess
 import sys
 import tempfile
 
-HL = os.path.join(os.path.dirname(__file__), "..", "..", "hashline.py")
+# Fix Windows console encoding
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except (AttributeError, OSError):
+    pass
+
+HL = os.path.join(os.path.dirname(__file__), "..", "hashline.py")
 if not os.path.exists(HL):
     HL = os.path.join(os.path.dirname(__file__), "hashline.py")
     if not os.path.exists(HL):
@@ -165,17 +171,12 @@ check("unicode path content", "UNICODE" in content, repr(content[:200]))
 os.unlink(up)
 
 # === 12. Hash collision test ===
-HASH_CHARS = "abcdefghijklmnopqrstuvwxyz"
-
-
-def short_hash(s):
-    h = int(hashlib.sha256(s.encode()).hexdigest(), 16)
-    return HASH_CHARS[h % 26] + HASH_CHARS[(h // 26) % 26]
-
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from hashline import compute_line_hash
 
 target = "collision_target"
-target_h = short_hash(target)
-collisions = [f"collide_{i}_xxxx" for i in range(2000) if short_hash(f"collide_{i}_xxxx") == target_h][:5]
+target_h = compute_line_hash(target)
+collisions = [f"collide_{i}_xxxx" for i in range(2000) if compute_line_hash(f"collide_{i}_xxxx") == target_h][:5]
 
 if len(collisions) >= 2:
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
@@ -262,7 +263,7 @@ with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding
     p = f.name
 r = hl("check", p)
 check("check command", r.returncode == 0, r.stderr.strip()[:200])
-check("check output", "no" not in r.stdout.lower() or "inconsistent" in r.stdout.lower(), repr(r.stdout[:200]))
+check("check output", r.stdout.count("\n") == 3, repr(r.stdout[:200]))
 os.unlink(p)
 
 # === Summary ===

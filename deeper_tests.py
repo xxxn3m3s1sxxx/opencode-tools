@@ -5,7 +5,13 @@ import subprocess
 import sys
 import tempfile
 
-HL = os.path.join(os.path.dirname(__file__), "..", "..", "hashline.py")
+# Fix Windows console encoding
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except (AttributeError, OSError):
+    pass
+
+HL = os.path.join(os.path.dirname(__file__), "..", "hashline.py")
 if not os.path.exists(HL):
     HL = os.path.join(os.path.dirname(__file__), "hashline.py")
 P = sys.executable

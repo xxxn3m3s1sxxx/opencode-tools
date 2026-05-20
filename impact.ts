@@ -1,4 +1,30 @@
-import { Tool } from "@opencode-ai/sdk";
+import type { Plugin } from "@opencode-ai/plugin";
+import { tool } from "@opencode-ai/plugin";
+import { spawnSync } from "child_process";
+
+let _python: string | null = null
+function detectPython(): string {
+  if (_python) return _python
+  const candidates = process.platform === "win32"
+    ? [["python"], ["py", "-3"], ["py"], ["python3"]]
+    : [["python3"], ["python"], ["py", "-3"], ["py"]]
+  for (const [cmd, ...args] of candidates) {
+    try {
+      const r = spawnSync(cmd, [...args, "-c", "import sys; print(sys.executable)"], { encoding: "utf-8", timeout: 3000 })
+      if (r.status === 0 && !r.error) {
+        const fp = (r.stdout || "").trim().split(/\r?\n/)[0].trim()
+        if (fp) { _python = fp; return fp }
+      }
+    } catch { /* try next */ }
+  }
+  _python = "python"; return _python
+}
+
+function splitArgs(cmd: string): string[] {
+  const args: string[] = []; const re = /[^\s"']+|"([^"]*)"|'([^']*)'/g; let m
+  while ((m = re.exec(cmd)) !== null) args.push(m[1] || m[2] || m[0])
+  return args
+}
 
 interface ImpactResult {
   symbol: string;
@@ -14,6 +40,7 @@ function fmtCount(n: number, label: string): string {
 }
 
 function relPath(file: string, root: string): string {
+  if (!root) return file;
   const rel = file.replace(root.replace(/\\/g, "/"), "").replace(/^[/\\]/, "");
   return rel || file;
 }
@@ -88,19 +115,21 @@ function formatOutput(symbol: string, data: ImpactResult): string {
 }
 
 async function runImpact(args: string[], cwd: string): Promise<string> {
-  const cmd = `python impact.py ${args.join(" ")} --json`;
-  const proc = Bun.spawnSync(cmd.split(" "), { cwd });
-  if (proc.exitCode !== 0) {
-    const stderr = proc.stderr.toString().trim();
-    throw new Error(`impact failed: ${stderr || proc.stdout.toString().trim()}`);
+  const proc = spawnSync(detectPython(), ["impact.py", ...args], { cwd, encoding: "utf-8", timeout: 30000 });
+  if (proc.error) throw proc.error;
+  if (proc.status !== 0) {
+    const msg = (proc.stderr?.trim() || proc.stdout?.trim() || `exit ${proc.status}`);
+    throw new Error(`impact failed: ${msg}`);
   }
-  return proc.stdout.toString();
+  return proc.stdout || "";
 }
 
-export const tools: Tool[] = [
-  {
-    name: "impact",
-    description: `Change Impact Analyzer. Find definitions, references, tests, and callers for any symbol in the codebase.
+export default (async () => {
+  const z = tool.schema
+  return {
+    tool: {
+      impact: tool({
+        description: `Change Impact Analyzer. Find definitions, references, tests, and callers for any symbol in the codebase.
 
 Usage:
   impact def <symbol>          Find definition of symbol
@@ -116,48 +145,33 @@ Examples:
   impact atlas_infer.py:152    Infer symbol at line 152
   impact AtlasModel --py       Limit to Python files
   impact generate --cpp        Limit to C++ files`,
-
-    parameters: {
-      type: "object",
-      properties: {
-        command: {
-          type: "string",
-          description: "The impact command and symbol to analyze (e.g. 'atlas_load', 'def forward', 'tests AtlasModel', 'graph atlas_valloc')",
+        args: {
+          command: z.string().describe("The impact command and symbol to analyze (e.g. 'atlas_load', 'def forward', 'tests AtlasModel', 'graph atlas_valloc')"),
         },
-      },
-      required: ["command"],
+        async execute({ command }: { command: string }, ctx: any) {
+          try {
+            const cwd = ctx?.cwd || process.cwd();
+            const args = splitArgs(command.trim().replace(/^impact(?:\.py)?\s+/, ""));
+            const symbol = args.find((a: string) => !a.startsWith("-")) || args[0] || "";
+
+            if (!args.includes("--json")) {
+              args.push("--json");
+            }
+
+            const stdout = await runImpact(args, cwd);
+            let data: ImpactResult;
+            try {
+              data = JSON.parse(stdout);
+            } catch {
+              return stdout;
+            }
+
+            return formatOutput(symbol, data);
+          } catch (err: any) {
+            return `impact error: ${err.message}`;
+          }
+        },
+      }),
     },
-
-    execute: async ({ command }: { command: string }, context) => {
-      try {
-        const cwd = context?.cwd || process.cwd();
-        const args = command.trim().split(/\s+/);
-        const symbol = args[args.length - 1];
-
-        // Add --json flag
-        if (!args.includes("--json")) {
-          args.push("--json");
-        }
-
-        const stdout = await runImpact(args, cwd);
-        let data: ImpactResult;
-        try {
-          data = JSON.parse(stdout);
-        } catch {
-          // Not JSON — plain text output
-          return { content: [{ type: "text", text: stdout }] };
-        }
-
-        const formatted = formatOutput(symbol, data);
-        return { content: [{ type: "text", text: formatted }] };
-      } catch (err: any) {
-        return {
-          content: [{ type: "text", text: `impact error: ${err.message}` }],
-          isError: true,
-        };
-      }
-    },
-  },
-];
-
-export default { tools };
+  };
+}) satisfies Plugin;

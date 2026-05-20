@@ -40,7 +40,7 @@ class TestReadFile(unittest.TestCase):
         tmp.close()
         try:
             lines, raw = _read_file(tmp.name)
-            self.assertEqual(len(lines), 3)
+            self.assertEqual(len(lines), 2)
             self.assertIn('hello', raw)
         finally:
             os.unlink(tmp.name)
@@ -55,7 +55,7 @@ class TestReadFile(unittest.TestCase):
         tmp.close()
         try:
             lines, raw = _read_file(tmp.name)
-            self.assertEqual(len(lines), 1)  # split('\n') on empty gives ['']
+            self.assertEqual(len(lines), 0)  # splitlines() on empty gives []
             self.assertEqual(raw, "")
         finally:
             os.unlink(tmp.name)
@@ -124,7 +124,7 @@ class TestCmdSummary(unittest.TestCase):
 
     def test_summary_line_count(self):
         r = cmd_summary(self.tmp.name, self.lines, self.raw)
-        self.assertEqual(r['lines'], 4)
+        self.assertEqual(r['lines'], 3)
 
     def test_summary_checksum_format(self):
         r = cmd_summary(self.tmp.name, self.lines, self.raw)

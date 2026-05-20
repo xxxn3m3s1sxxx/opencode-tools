@@ -23,19 +23,36 @@ import os
 import re
 import sys
 
-_IMPACT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, _IMPACT_DIR)
 try:
     from impact import ImpactAnalyzer, _is_python, _grep_find_references
 except ImportError:
-    ImpactAnalyzer = None
+    # Fallback: import from explicit path (sibling file)
+    _impact_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "impact.py")
+    if os.path.exists(_impact_path):
+        import importlib.util as _util
+        _spec = _util.spec_from_file_location("impact", _impact_path)
+        if _spec and _spec.loader:
+            _mod = _util.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            ImpactAnalyzer = _mod.ImpactAnalyzer
+            _is_python = _mod._is_python
+            _grep_find_references = _mod._grep_find_references
+        else:
+            ImpactAnalyzer = None
+    else:
+        ImpactAnalyzer = None
+
+
+def _read_file(filepath):
+    """Read file, stripping BOM and normalizing CRLF to LF."""
+    with open(filepath, 'r', encoding='utf-8-sig') as f:
+        return f.read().replace("\r\n", "\n")
 
 
 def _find_enclosing_function(filepath, line_no):
     """Find the name of the function enclosing a given line (Python only)."""
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            source = f.read()
+        source = _read_file(filepath)
         tree = ast.parse(source, filepath)
     except (SyntaxError, OSError):
         return None
@@ -66,8 +83,8 @@ def _grep_occurrences(filepath, symbol):
     """Find all occurrences of symbol using word-boundary grep."""
     matches = []
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
+        source = _read_file(filepath)
+        lines = source.split("\n") if source else []
     except (OSError, UnicodeDecodeError):
         return matches
     pattern = re.compile(r'\b' + re.escape(symbol) + r'\b')

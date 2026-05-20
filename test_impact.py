@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Comprehensive test suite for impact.py — Change Impact Analyzer."""
 import json
+import io
 import os
 import sys
 import tempfile
@@ -495,18 +496,17 @@ class TestCLI(unittest.TestCase):
     def _run(self, args):
         """Run impact with args, capture stdout."""
         old_out = sys.stdout
-        sys.stdout = io = tempfile.NamedTemporaryFile(mode='w+', delete=False, encoding='utf-8')
+        buf = io.StringIO()
+        sys.stdout = buf
         sys.argv = ['impact'] + args + ['--root=' + self.tmpdir]
         try:
             from impact import main
             exit_code = main()
         except SystemExit as e:
             exit_code = e.code
-        sys.stdout.close()
-        sys.stdout = old_out
-        with open(io.name, 'r', encoding='utf-8') as f:
-            output = f.read()
-        os.unlink(io.name)
+        finally:
+            sys.stdout = old_out
+            output = buf.getvalue()
         return exit_code, output
 
     def test_def_command(self):

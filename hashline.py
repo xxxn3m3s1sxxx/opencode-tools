@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 """
-hashline.py -- hash-anchored editing for ATLAS workspace
+hashline.py -- hash-anchored text editing — precision diffs for AI coding tools
 
 Hashline: every line gets a 2-char content hash (xxHash32-style via SHA-256).
 Edits reference LINE+HASH anchors instead of reproducing old text.
@@ -28,10 +29,24 @@ import itertools
 import re
 import sys
 import os
+import locale
+import string
 from pathlib import Path
 
+# Ensure stdout can handle unicode (fixes Windows cp1252 issues)
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except (AttributeError, OSError):
+    pass
 
-BIGRAMS = [a + b for a, b in itertools.product("abcdefghijklmnopqrstuvwxyz", repeat=2)]
+
+def _read_file(path: Path) -> str:
+    """Read file with UTF-8, stripping BOM and normalizing CRLF to LF."""
+    return path.read_text(encoding="utf-8-sig").replace("\r\n", "\n")
+
+
+BIGRAMS = [a + b for a, b in itertools.product(string.ascii_lowercase, repeat=2)]
 BIGRAMS_COUNT = len(BIGRAMS)
 
 HL_BODY_SEP = "|"
@@ -46,7 +61,7 @@ FILE_HEADER = "@"
 
 def compute_line_hash(line: str) -> str:
     """2-char content hash via SHA-256 mod 676."""
-    cleaned = line.replace("\r", "").rstrip()
+    cleaned = line.replace("\r", "").rstrip("\n")
     h = hashlib.sha256(cleaned.encode("utf-8")).digest()
     idx = int.from_bytes(h[:8], "little") % BIGRAMS_COUNT
     return BIGRAMS[idx]
@@ -437,7 +452,7 @@ def cmd_read(args: list[str]):
     if not path.exists():
         print(f"File not found: {path}", file=sys.stderr)
         sys.exit(1)
-    text = path.read_text(encoding="utf-8")
+    text = _read_file(path)
     print(format_hash_lines(text))
 
 
@@ -450,8 +465,8 @@ def cmd_check(args: list[str]):
     if not path.exists():
         print(f"File not found: {path}", file=sys.stderr)
         sys.exit(1)
-    text = path.read_text(encoding="utf-8").rstrip("\n")
-    for i, line in enumerate(text.split("\n"), 1):
+    lines = _read_file(path).splitlines()
+    for i, line in enumerate(lines, 1):
         h = compute_line_hash(line)
         print(f"{i}{h}")
 
@@ -473,11 +488,11 @@ def cmd_edit(args: list[str]):
         sys.exit(1)
 
     if len(args) > 1:
-        diff_text = Path(args[1]).read_text(encoding="utf-8")
+        diff_text = _read_file(Path(args[1]))
     else:
-        diff_text = sys.stdin.read()
+        diff_text = sys.stdin.read().replace("\r\n", "\n")
 
-    original = file_path.read_text(encoding="utf-8")
+    original = _read_file(file_path)
     text = original
 
     sections = parse_hashline_input(diff_text, default_path=str(file_path))
@@ -497,22 +512,26 @@ def cmd_diff(args: list[str]):
 
     Usage:
         hashline.py diff <file> <diff_file>
+        hashline.py diff <file> <diff_file> --json
     """
-    if len(args) < 1:
+    use_json = "--json" in args
+    clean_args = [a for a in args if a != "--json"]
+
+    if len(clean_args) < 1:
         print("Usage: hashline.py diff <file> [diff_file]", file=sys.stderr)
         sys.exit(1)
 
-    file_path = Path(args[0])
+    file_path = Path(clean_args[0])
     if not file_path.exists():
         print(f"File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
 
-    if len(args) > 1:
-        diff_text = Path(args[1]).read_text(encoding="utf-8")
+    if len(clean_args) > 1:
+        diff_text = _read_file(Path(clean_args[1]))
     else:
-        diff_text = sys.stdin.read()
+        diff_text = sys.stdin.read().replace("\r\n", "\n")
 
-    original = file_path.read_text(encoding="utf-8")
+    original = _read_file(file_path)
     text = original
 
     sections = parse_hashline_input(diff_text, default_path=str(file_path))
@@ -523,9 +542,20 @@ def cmd_diff(args: list[str]):
     import difflib
     orig_lines = original.split("\n")
     new_lines = text.split("\n")
-    for line in difflib.unified_diff(orig_lines, new_lines, fromfile=str(file_path),
-                                      tofile=str(file_path), lineterm=""):
-        print(line)
+    diff_lines = list(difflib.unified_diff(
+        orig_lines, new_lines,
+        fromfile=str(file_path), tofile=str(file_path), lineterm=""))
+
+    if use_json:
+        import json as _json
+        print(_json.dumps({
+            "file": str(file_path),
+            "changed": original != text,
+            "diff": "\n".join(diff_lines),
+        }, indent=2))
+    else:
+        for line in diff_lines:
+            print(line)
 
 
 def cmd_replace(args: list[str]):
@@ -563,12 +593,12 @@ def cmd_replace(args: list[str]):
     new_text = parsed_args.new
 
     if parsed_args.file_old:
-        old_text = Path(parsed_args.file_old).read_text(encoding="utf-8")
+        old_text = _read_file(Path(parsed_args.file_old))
     if parsed_args.file_new:
-        new_text = Path(parsed_args.file_new).read_text(encoding="utf-8")
+        new_text = _read_file(Path(parsed_args.file_new))
 
     if parsed_args.stdin_old and parsed_args.stdin_new:
-        stdin_data = sys.stdin.read()
+        stdin_data = sys.stdin.read().replace("\r\n", "\n")
         split_marker = "\n===OLD/NEW===\n"
         if split_marker in stdin_data:
             old_text, new_text = stdin_data.split(split_marker, 1)
@@ -577,21 +607,21 @@ def cmd_replace(args: list[str]):
             print("Format: <old_text>\\n===OLD/NEW===\\n<new_text>", file=sys.stderr)
             sys.exit(1)
     elif parsed_args.stdin_old:
-        old_text = sys.stdin.read()
+        old_text = sys.stdin.read().replace("\r\n", "\n")
     elif parsed_args.stdin_new:
-        new_text = sys.stdin.read()
+        new_text = sys.stdin.read().replace("\r\n", "\n")
 
     if old_text is None or new_text is None:
         parser.print_help()
         sys.exit(1)
 
-    content = file_path.read_text(encoding="utf-8")
+    content = _read_file(file_path)
     file_lines = content.split("\n")
 
     # Normalize CRLF -> LF in old_text (in case of Windows-style line
     # endings from command-line arguments), then strip trailing whitespace
     # so match_lines doesn't include a spurious empty element.
-    old_stripped = old_text.replace("\r\n", "\n").rstrip()
+    old_stripped = old_text.replace("\r\n", "\n").rstrip("\n")
     idx = content.find(old_stripped)
     if idx < 0:
         print("Error: old text not found in file", file=sys.stderr)
@@ -627,7 +657,7 @@ def cmd_replace(args: list[str]):
         diff += f"{HL_EDIT_SEP}{line}\n"
 
     if parsed_args.dry_run:
-        print(hashline_diff_output(diff))
+        print(hashline_diff_output(diff, str(file_path)))
         return
 
     # Apply the hashline edit
@@ -646,10 +676,9 @@ def cmd_replace(args: list[str]):
         sys.exit(1)
 
 
-def hashline_diff_output(diff: str) -> str:
+def hashline_diff_output(diff: str, file_path: str = "path") -> str:
     """Format a hashline diff for display with file header."""
-    # Add the @@ header
-    return f"@@ path\n{diff}"
+    return f"@@ {file_path}\n{diff}"
 
 
 def main():
@@ -675,7 +704,7 @@ def main():
     if command not in commands:
         print(f"Unknown command: {command}", file=sys.stderr)
         print("Available: {}{}".format(
-            ", ".join(c for c in commands if c not in ("version",)),
+            ", ".join(commands),
             ", --version"
         ), file=sys.stderr)
         sys.exit(1)

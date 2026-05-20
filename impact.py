@@ -23,6 +23,12 @@ import sys
 from pathlib import Path
 
 
+def _read_file(filepath):
+    """Read file, stripping BOM and normalizing CRLF to LF."""
+    with open(filepath, 'r', encoding='utf-8-sig') as f:
+        return f.read().replace("\r\n", "\n")
+
+
 # ─── C++ Pattern Definitions ──────────────────────────────────────────────
 
 CPP_DEF_PATTERNS = [
@@ -51,8 +57,7 @@ def _py_find_definitions(filepath, symbol):
     """Find all definitions in a Python file matching symbol."""
     matches = []
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            source = f.read()
+        source = _read_file(filepath)
         tree = ast.parse(source, filepath)
     except SyntaxError:
         return matches
@@ -94,20 +99,24 @@ def _py_find_references(filepath, symbol):
     """Find all references to a symbol in a Python file."""
     matches = []
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            source = f.read()
+        source = _read_file(filepath)
         tree = ast.parse(source, filepath)
     except SyntaxError:
         return matches
 
     lines = source.split('\n')
 
-    # Track which Name positions are part of a Call to avoid double-count
+    # Track which Name positions are part of a Call to avoid double-count,
+    # and which lines are definitions for this symbol (precomputed, O(n)).
     call_name_lines = set()
+    def_lines = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
             if node.func.id == symbol and hasattr(node.func, 'lineno'):
                 call_name_lines.add(node.func.lineno)
+        if isinstance(node, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
+            if node.name == symbol and hasattr(node, 'lineno'):
+                def_lines.add(node.lineno)
 
     for node in ast.walk(tree):
         line = node.lineno if hasattr(node, 'lineno') else 0
@@ -121,22 +130,14 @@ def _py_find_references(filepath, symbol):
                     'line': line,
                     'context': context.strip(),
                 })
-        elif isinstance(node, ast.Name) and node.id == symbol and line not in call_name_lines:
-            # Skip definitions (handled separately)
-            is_def = False
-            for parent in ast.walk(tree):
-                if isinstance(parent, (ast.FunctionDef, ast.ClassDef, ast.AsyncFunctionDef)):
-                    if parent.name == symbol and hasattr(parent, 'lineno') and parent.lineno == node.lineno:
-                        is_def = True
-                        break
-            if not is_def:
-                context = lines[line - 1][:120] if line <= len(lines) else ''
-                matches.append({
-                    'type': 'reference',
-                    'file': str(filepath),
-                    'line': line,
-                    'context': context.strip(),
-                })
+        elif isinstance(node, ast.Name) and node.id == symbol and line not in call_name_lines and line not in def_lines:
+            context = lines[line - 1][:120] if line <= len(lines) else ''
+            matches.append({
+                'type': 'reference',
+                'file': str(filepath),
+                'line': line,
+                'context': context.strip(),
+            })
         elif isinstance(node, ast.Attribute) and node.attr == symbol:
             context = lines[line - 1][:120] if line <= len(lines) else ''
             matches.append({
@@ -145,6 +146,26 @@ def _py_find_references(filepath, symbol):
                 'line': line,
                 'context': context.strip(),
             })
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == symbol or (alias.asname and alias.asname == symbol):
+                    context = lines[line - 1][:120] if line <= len(lines) else ''
+                    matches.append({
+                        'type': 'import',
+                        'file': str(filepath),
+                        'line': line,
+                        'context': context.strip(),
+                    })
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                if alias.name == symbol or (alias.asname and alias.asname == symbol):
+                    context = lines[line - 1][:120] if line <= len(lines) else ''
+                    matches.append({
+                        'type': 'import',
+                        'file': str(filepath),
+                        'line': line,
+                        'context': context.strip(),
+                    })
 
     return matches
 
@@ -156,9 +177,8 @@ def _cpp_find_definitions(filepath, symbol):
     """Find C++ definitions matching symbol using regex patterns."""
     matches = []
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        source = ''.join(lines)
+        source = _read_file(filepath)
+        lines = source.split("\n") if source else []
     except (UnicodeDecodeError, OSError):
         # Try binary mode for UTF-16 etc.
         try:
@@ -194,13 +214,13 @@ def _grep_find_references(filepath, symbol):
     """Find all references to symbol in a file using regex."""
     matches = []
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
+        source = _read_file(filepath)
+        lines = source.split("\n") if source else []
     except (UnicodeDecodeError, OSError):
         try:
             with open(filepath, 'rb') as f:
                 raw = f.read()
-            text = raw.decode('utf-8', errors='replace')
+            text = raw.decode('utf-8', errors='replace').replace("\r\n", "\n")
             lines = text.split('\n')
         except OSError:
             return matches
@@ -408,32 +428,34 @@ class ImpactAnalyzer:
             for node in ast.walk(tree):
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and \
                    node.name == symbol and hasattr(node, 'lineno') and node.lineno == d['line']:
-                    # Collect line ranges of nested defs to skip their children
+                    # Single walk: collect nested def ranges AND direct calls
+                    children = list(ast.walk(node))
                     nested_ranges = []
-                    for child in ast.walk(node):
+                    callee_nodes = []
+                    for child in children:
                         if child is node:
                             continue
                         if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                             if hasattr(child, 'lineno') and hasattr(child, 'end_lineno'):
                                 nested_ranges.append((child.lineno, child.end_lineno))
-                    # Walk this node's direct calls (skip nested def bodies)
-                    for child in ast.walk(node):
-                        if isinstance(child, ast.Call):
-                            in_nested = any(start <= child.lineno <= end for start, end in nested_ranges)
-                            if in_nested:
-                                continue
-                            if isinstance(child.func, ast.Name):
-                                callees.append({
-                                    'name': child.func.id,
-                                    'file': d['file'],
-                                    'line': child.lineno,
-                                })
-                            elif isinstance(child.func, ast.Attribute):
-                                callees.append({
-                                    'name': f"{child.func.value.id}.{child.func.attr}" if isinstance(child.func.value, ast.Name) else child.func.attr,
-                                    'file': d['file'],
-                                    'line': child.lineno,
-                                })
+                        elif isinstance(child, ast.Call):
+                            callee_nodes.append(child)
+                    for child in callee_nodes:
+                        in_nested = any(start <= child.lineno <= end for start, end in nested_ranges)
+                        if in_nested:
+                            continue
+                        if isinstance(child.func, ast.Name):
+                            callees.append({
+                                'name': child.func.id,
+                                'file': d['file'],
+                                'line': child.lineno,
+                            })
+                        elif isinstance(child.func, ast.Attribute):
+                            callees.append({
+                                'name': f"{child.func.value.id}.{child.func.attr}" if isinstance(child.func.value, ast.Name) else child.func.attr,
+                                'file': d['file'],
+                                'line': child.lineno,
+                            })
                     break
 
         return sorted(callees, key=lambda r: r['line'])
