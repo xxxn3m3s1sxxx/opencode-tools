@@ -159,8 +159,12 @@ def main():
         a = raw[i]
         if a == '--json':
             use_json = True; i += 1
+        elif a.startswith('--context='):
+            context = int(a.split('=', 1)[1]); i += 1
         elif a == '--context' and i + 1 < len(raw):
             context = int(raw[i + 1]); i += 2
+        elif a.startswith('--include='):
+            include = a.split('=', 1)[1]; i += 1
         elif a == '--include' and i + 1 < len(raw):
             include = raw[i + 1]; i += 2
         elif a.startswith('-'):

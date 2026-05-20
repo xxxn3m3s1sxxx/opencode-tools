@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Stress-test hashline.py for edge cases and bugs."""
 
-import hashlib
+
 import os
 import subprocess
 import sys

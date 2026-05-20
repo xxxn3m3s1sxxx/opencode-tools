@@ -29,7 +29,7 @@ import itertools
 import re
 import sys
 import os
-import locale
+
 import string
 from pathlib import Path
 

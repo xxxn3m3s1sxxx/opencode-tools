@@ -83,7 +83,6 @@ def _py_find_definitions(filepath, symbol):
                     kind = 'variable'
                     line = t.lineno
                     break
-
         if name and name == symbol:
             matches.append({
                 'type': kind,
@@ -488,9 +487,22 @@ class ImpactAnalyzer:
         if assign_match:
             return assign_match.group(1)
 
-        # 4. Generic: first word-like identifier
+        # 4. First enclosing function/class name (walking upward for context)
+        for check_line in range(line_no - 2, -1, -1):
+            ctx_match = re.match(r'^\s*(?:def|class|async\s+def)\s+(\w+)', lines[check_line])
+            if ctx_match:
+                return ctx_match.group(1)
+        # 5. Generic: first non-keyword identifier
+        # use built-in set of Python keywords
+        _keywords = {
+            'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await',
+            'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except',
+            'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is',
+            'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try',
+            'while', 'with', 'yield',
+        }
         ident = re.search(r'(\w+)', line)
-        if ident:
+        if ident and ident.group(1) not in _keywords:
             return ident.group(1)
 
         return None
@@ -628,7 +640,7 @@ def main():
             print(format_json(symbol, defs, [], [], [], analyzer.root))
         else:
             print(format_pretty(symbol, defs, [], [], [], analyzer.root))
-        return 0
+        return 0 if defs else 1
 
     elif cmd in ('ref', 'refs', 'references'):
         if len(clean_args) < 2:
@@ -640,7 +652,7 @@ def main():
             print(format_json(symbol, [], refs, [], [], analyzer.root))
         else:
             print(format_pretty(symbol, [], refs, [], [], analyzer.root))
-        return 0
+        return 0 if refs else 1
 
     elif cmd in ('test', 'tests'):
         if len(clean_args) < 2:
@@ -652,7 +664,7 @@ def main():
             print(format_json(symbol, [], [], tests, [], analyzer.root))
         else:
             print(format_pretty(symbol, [], [], tests, [], analyzer.root))
-        return 0
+        return 0 if tests else 1
 
     elif cmd in ('file',):
         if len(clean_args) < 2:
@@ -687,7 +699,7 @@ def main():
             print(format_json(symbol, defs, refs, tests, callees, analyzer.root))
         else:
             print(format_pretty(symbol, defs, refs, tests, callees, analyzer.root))
-        return 0
+        return 0 if (defs or refs or tests or callees) else 1
 
     else:
         # Default: show everything for a symbol
@@ -727,7 +739,7 @@ def main():
         else:
             print(format_pretty(symbol, defs, refs, tests, callees, analyzer.root))
 
-        return 0
+        return 0 if (defs or refs or tests or callees) else 1
 
 
 if __name__ == '__main__':

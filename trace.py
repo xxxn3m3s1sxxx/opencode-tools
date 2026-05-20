@@ -332,8 +332,27 @@ def main():
         print('Usage: trace <symbol> [options]')
         return 1
 
-    symbol = clean_args[0]
+    symbol_raw = clean_args[0]
     analyzer = ImpactAnalyzer(root_dir)
+
+    # Parse file:line syntax (handle Windows C:\ paths)
+    file_line_match = re.match(r'^([A-Za-z]:\\.+?):(\d+)$', symbol_raw)
+    if not file_line_match:
+        file_line_match = re.match(r'^([^:]+):(\d+)$', symbol_raw)
+    if file_line_match and os.path.isfile(file_line_match.group(1)):
+        filepath, line_str = file_line_match.group(1), file_line_match.group(2)
+        try:
+            line_no = int(line_str)
+            inferred = analyzer.infer_symbol(filepath, line_no)
+            if inferred:
+                symbol = inferred
+            else:
+                print(f"Could not infer symbol at {filepath}:{line_no}", file=sys.stderr)
+                return 1
+        except ValueError:
+            symbol = symbol_raw
+    else:
+        symbol = symbol_raw
 
     callers = []
     chain = []
