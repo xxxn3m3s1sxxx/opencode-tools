@@ -30,7 +30,7 @@ CPP_DEF_PATTERNS = [
     (r'(?:\w[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{',
      'function'),
     # Function declaration: return_type func_name(args);
-    (r'(?:\w[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*;',
+    (r'(?:\w[\w:<>*&]+\s+)(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*;',
      'function_decl'),
     # Variable assignment: type var = cast(...) or type var = call(...);
     (r'(?:\w[\w:<>*&]+\s+)([a-z_]\w*)\s*(?:=)', 'variable'),
@@ -505,17 +505,11 @@ def main():
         return 0
 
     args = sys.argv[1:]
-    cmd = args[0]
 
-    # Handle --version
-    if cmd == '--version':
-        print('impact.py 0.1.1')
-        return 0
+    # Parse flags first (before extracting cmd)
     use_json = '--json' in args
     lang = 'all'
     root_dir = None
-
-    # Parse flags
     clean_args = []
     for a in args:
         if a == '--json':
@@ -533,6 +527,17 @@ def main():
             lang = 'cpp'
             continue
         clean_args.append(a)
+
+    if not clean_args:
+        print(__doc__.strip())
+        return 0
+
+    cmd = clean_args[0]
+
+    # Handle --version
+    if cmd == '--version':
+        print('impact.py 0.1.1')
+        return 0
 
     analyzer = ImpactAnalyzer(root_dir)
     symbol = None
