@@ -115,6 +115,9 @@ def main():
         elif a == '--root' and i + 1 < len(args):
             root_dir = args[i + 1]
             i += 2
+        elif a.startswith('--root='):
+            root_dir = a.split('=', 1)[1]
+            i += 1
         elif a == '--lang' and i + 1 < len(args):
             lang = args[i + 1]
             i += 2
