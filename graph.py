@@ -62,7 +62,7 @@ def _read_file(filepath: str) -> str | None:
 # ─── Import Parsers ──────────────────────────────────────────────────────
 
 PY_IMPORT_RE = re.compile(
-    r'^(?:from\s+([.\w]+)\s+)?import\s+(.+)$',
+    r'^\s*(?:from\s+([.\w]+)\s+)?import\s+(.+)$',
     re.MULTILINE,
 )
 PY_FROM_RE = re.compile(r'from\s+([.\w]+)\s+import')
@@ -107,13 +107,18 @@ def _parse_cpp_imports(source: str) -> list[str]:
 
 def _resolve_import_path(imp: str, filepath: str, root: str) -> str | None:
     base = os.path.dirname(filepath)
+
+    # Prioritize same extension as importing file
+    caller_ext = os.path.splitext(filepath)[1].lower()
+    exts_ordered = [caller_ext] + sorted(e for e in SOURCE_EXTS if e != caller_ext)
+
     if imp.startswith('.'):
         rel = os.path.normpath(os.path.join(base, imp.replace('.', '/')))
-        for ext in SOURCE_EXTS:
+        for ext in exts_ordered:
             p = rel + ext
             if os.path.exists(p):
                 return os.path.relpath(p, root)
-        for ext in SOURCE_EXTS:
+        for ext in exts_ordered:
             p = os.path.join(rel, '__init__' + ext)
             if os.path.exists(p):
                 return os.path.relpath(p, root)
@@ -125,7 +130,7 @@ def _resolve_import_path(imp: str, filepath: str, root: str) -> str | None:
         prefix = '/'.join(parts[:i])
         suffix = '/'.join(parts[i:])
 
-        for ext in SOURCE_EXTS:
+        for ext in exts_ordered:
             candidates.append(os.path.join(root, prefix + ext))
             if suffix:
                 candidates.append(os.path.join(root, prefix, suffix + ext))
