@@ -6,6 +6,7 @@
   "license": "MIT",
   "type": "module",
   "files": [
+    "utils.ts",
     "hashline.ts",
     "hashline.py",
     "impact.ts",
@@ -14,6 +15,12 @@
     "verify.py",
     "trace.ts",
     "trace.py",
+    "rename.ts",
+    "rename.py",
+    "graph.ts",
+    "graph.py",
+    "changelog.ts",
+    "changelog.py",
     "README.md"
   ],
   "scripts": {
