@@ -378,6 +378,17 @@ class ImpactAnalyzer:
                     name = node.name; kind = 'function'
                 elif isinstance(node, ast.ClassDef):
                     name = node.name; kind = 'class'
+                elif isinstance(node, ast.Assign):
+                    for t in node.targets:
+                        if isinstance(t, ast.Name):
+                            name = t.id; kind = 'variable'; line = t.lineno
+                            break
+                elif isinstance(node, (ast.ImportFrom, ast.Import)):
+                    for alias in node.names:
+                        name = alias.asname or alias.name.split('.')[0]
+                        kind = 'import'
+                        line = node.lineno
+                        break
                 if name:
                     matches.append({'name': name, 'type': kind, 'line': line})
             return sorted(matches, key=lambda x: x['line'])
@@ -708,26 +719,21 @@ def main():
         # Check if it's a file:line reference
         if ':' in cmd:
             parts = cmd.rsplit(':', 1)
-            maybe_file = parts[0]
-            maybe_line = parts[1]
-            resolved_file = maybe_file
-            if maybe_line.isdigit():
-                if os.path.exists(maybe_file):
-                    resolved_file = maybe_file
-                else:
+            if len(parts) >= 2 and parts[1].isdigit():
+                maybe_file, maybe_line = parts[0], parts[1]
+                resolved_file = maybe_file
+                if not os.path.exists(maybe_file):
                     joined = os.path.join(analyzer.root, maybe_file)
                     if os.path.exists(joined):
                         resolved_file = joined
-            if not os.path.exists(resolved_file) or not maybe_line.isdigit():
-                pass  # Not a file:line reference, treat as symbol
-            else:
-                file_line = (resolved_file, int(maybe_line))
-                inferred = analyzer.infer_symbol(resolved_file, int(maybe_line))
-                if inferred:
-                    symbol = inferred
-                else:
-                    print(f"Cannot infer symbol at {cmd}")
-                    return 1
+                if os.path.exists(resolved_file):
+                    file_line = (resolved_file, int(maybe_line))
+                    inferred = analyzer.infer_symbol(resolved_file, int(maybe_line))
+                    if inferred:
+                        symbol = inferred
+                    else:
+                        print(f"Cannot infer symbol at {cmd}")
+                        return 1
 
         defs = analyzer.find_definition(symbol, lang)
         refs = analyzer.find_references(symbol, lang)
