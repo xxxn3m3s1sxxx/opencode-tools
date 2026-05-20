@@ -45,6 +45,19 @@ for tool in $TOOLS; do
   fi
 done
 
+# Install to .opencode/plugins/ (project-local, auto-discovered)
+LOCAL_PLUGIN_DIR="$PROJECT/.opencode/plugins"
+mkdir -p "$LOCAL_PLUGIN_DIR"
+for tool in $TOOLS; do
+  src="${tool}.ts"
+  dst="$LOCAL_PLUGIN_DIR/$src"
+  if [ -f "$src" ]; then
+    cp "$src" "$dst"
+  elif [ ! -f "$dst" ]; then
+    curl -fsSL "$REPO/$src" -o "$dst" 2>/dev/null || true
+  fi
+done
+
 # Install .py to plugin dir (for plugin system)
 for tool in $TOOLS; do
   [ "$tool" = "utils" ] && continue

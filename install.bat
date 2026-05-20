@@ -54,6 +54,15 @@ for %%t in (%TOOLS%) do (
     )
 )
 
+REM --- Install to .opencode\plugins (project-local, auto-discovered) ---
+if not exist "%PROJECT%\.opencode\plugins" mkdir "%PROJECT%\.opencode\plugins"
+
+for %%t in (%TOOLS%) do (
+    if not exist "%PROJECT%\.opencode\plugins\%%t.ts" (
+        powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.ts' -OutFile '%PROJECT%\.opencode\plugins\%%t.ts' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
+    )
+)
+
 REM --- Install .py to plugins dir ---
 for %%t in (%TOOLS%) do (
     if not "%%t"=="utils" (

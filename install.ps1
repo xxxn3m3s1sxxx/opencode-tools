@@ -85,6 +85,17 @@ foreach ($tool in $Tools) {
     Install-File "$tool.ts" "$PluginDir\$tool.ts" "$tool.ts"
 }
 
+# --- Install to .opencode/plugins (project-local, auto-discovered) ---
+$LocalPluginDir = "$Project\.opencode\plugins"
+if (-not (Test-Path $LocalPluginDir)) { New-Item -ItemType Directory -Path $LocalPluginDir -Force | Out-Null }
+Install-File "utils.ts" "$LocalPluginDir\utils.ts" "utils.ts (.opencode)"
+foreach ($tool in $Tools) {
+    $LocalTs = "$LocalPluginDir\$tool.ts"
+    if (-not (Test-Path $LocalTs)) {
+        Install-File "$tool.ts" "$LocalTs" "$tool.ts (.opencode)"
+    }
+}
+
 # --- Install .py to plugin dir ---
 foreach ($tool in $Tools) {
     $PluginPy = "$PluginDir\$tool.py"
