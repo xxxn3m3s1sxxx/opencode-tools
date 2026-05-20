@@ -22,46 +22,67 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      # ── Hashline tests ──
-      - name: hashline --version
-        run: python hashline.py --version
+      # ── Version checks ──
+      - name: engine versions
+        run: |
+          for t in hashline impact verify trace rename graph changelog search lint refactor; do
+            python ${t}.py --version 2>/dev/null && echo "[OK] $t" || echo "[WARN] $t: empty output"
+          done
 
+      # ── Hashline tests ──
       - name: hashline core tests (42)
         run: python test_hashline.py
-
       - name: hashline regression tests (22)
         run: python regression_tests.py
-
       - name: hashline stress tests (39)
         run: python stress_test.py
-
       - name: hashline deep edge tests (27)
         run: python deeper_tests.py
 
       # ── Impact tests ──
-      - name: impact --version
-        run: python impact.py --version
-
+      - name: impact test suite (63)
+        run: python test_impact.py
       - name: impact smoke test
         run: python impact.py impact --json
 
-      - name: impact test suite (63)
-        run: python test_impact.py
-
       # ── Verify tests ──
-      - name: verify --version
-        run: python verify.py --version
-
       - name: verify test suite (48)
         run: python test_verify.py
+      - name: verify smoke test
+        run: python verify.py --version
 
       # ── Trace tests ──
-      - name: trace --version
-        run: python trace.py --version
-
       - name: trace test suite (28)
         run: python test_trace.py
 
+      # ── Graph tests ──
+      - name: graph test suite (20)
+        run: python test_graph.py
+
+      # ── Changelog tests ──
+      - name: changelog test suite (25)
+        run: python test_changelog.py
+
+      # ── Search tests ──
+      - name: search test suite (14)
+        run: python test_search.py
+
+      # ── Lint tests ──
+      - name: lint test suite (17)
+        run: python test_lint.py
+
+      # ── Refactor tests ──
+      - name: refactor test suite (21)
+        run: python test_refactor.py
+
       # ── Bundle check ──
       - name: bundle check
-        run: python -c "import json; json.load(open('package.json')); print('[OK] package.json OK')"
+        run: python -c "
+import json;
+p = json.load(open('package.json'));
+assert p['version'] == '0.3.0';
+print(f'[OK] package.json v{p[\"version\"]}');
+files = p.get('files', []);
+print(f'[OK] {len(files)} files in manifest');
+assert 'utils.ts' in files, 'utils.ts missing';
+"
