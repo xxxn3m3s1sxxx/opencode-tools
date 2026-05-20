@@ -45,7 +45,7 @@ echo "  Project: $PROJECT"
 echo ""
 
 # --- Helpers ---
-TOOLS="hashline impact"
+TOOLS="hashline impact verify"
 
 install_file() {
     local src="$1"

@@ -10,6 +10,20 @@ No external dependencies. Just Python 3 + zero-fuss install.
 
 ## Tools
 
+### Verify — Post-Edit Verification
+
+After every edit, know for sure it worked. Verify reads the file back and
+confirms the expected change is present — or tells you exactly what's wrong.
+
+```
+verify atlas_api.cpp:20 "atlas_valloc"     Line 20 has atlas_valloc?
+verify impact.py --old "bug" --new "fix"     Replace verified?
+verify atlas_api.cpp                          File summary (lines, hash)
+verify atlas_infer.py:612 --context 5         Context at line 612
+```
+
+**Status:** Beta — 46 tests · post-edit confidence check
+
 ### Hashline — Hash-Anchored Editing
 
 `edit()` fails when the AI model reproduces old text with trailing whitespace,
@@ -82,8 +96,12 @@ opencode-tools/
 ├── regression_tests.py     # 22 regression tests
 ├── stress_test.py          # 39 stress tests
 ├── deeper_tests.py         # 27 deep edge tests
-├── impact.py               # Impact engine (v0.1.0)
+├── impact.py               # Impact engine (v0.1.1)
 ├── impact.ts               # Impact OpenCode plugin
+├── test_impact.py          # 61 tests
+├── verify.py               # Verify engine (v0.1.0)
+├── verify.ts               # Verify OpenCode plugin
+├── test_verify.py          # 46 tests
 ├── install.sh              # Linux/macOS installer
 ├── install.ps1             # Windows installer
 ├── .github/workflows/ci.yml
@@ -96,6 +114,7 @@ opencode-tools/
 ```
 hashline: 130/130  (42 core + 22 regression + 39 stress + 27 deep)
 impact:   61/61    (Python AST + C++ regex + CLI + edge cases)
+verify:   46/46    (read, contains, context, replace, CLI, edge cases)
 ```
 
 ## Why Separate Tools?

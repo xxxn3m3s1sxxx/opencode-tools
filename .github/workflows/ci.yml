@@ -48,6 +48,13 @@ jobs:
       - name: impact test suite (61)
         run: python test_impact.py
 
+      # ── Verify tests ──
+      - name: verify --version
+        run: python verify.py --version
+
+      - name: verify test suite (46)
+        run: python test_verify.py
+
       # ── Bundle check ──
       - name: bundle check
         run: python -c "import json; json.load(open('package.json')); print('[OK] package.json OK')"

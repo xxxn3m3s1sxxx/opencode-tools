@@ -1,7 +1,7 @@
 {
   "name": "opencode-tools",
   "version": "0.1.0",
-  "description": "Reliability toolbox for AI-assisted coding — hashline + impact + more",
+  "description": "Reliability toolbox for AI-assisted coding — verify + hashline + impact",
   "keywords": ["opencode", "plugin", "hashline", "impact", "edit", "analysis"],
   "license": "MIT",
   "type": "module",

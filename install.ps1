@@ -15,7 +15,7 @@ param(
 
 $RepoBase = "https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
 $ErrorActionPreference = "Stop"
-$Tools = @("hashline", "impact")
+$Tools = @("hashline", "impact", "verify")
 
 function Write-Step($msg) { Write-Host "  $msg" -ForegroundColor Green }
 function Write-Skip($msg) { Write-Host "  $msg" -ForegroundColor Yellow }
