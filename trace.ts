@@ -96,7 +96,7 @@ Examples:
           try {
             const cwd = ctx?.cwd || process.cwd();
             const args = splitArgs(command.trim().replace(/^trace(?:\.py)?\s+/, ""));
-            const symbol = args.filter((a: string) => !a.startsWith("-")).pop() || "unknown";
+            const symbol = args.filter((a: string) => !a.startsWith("-"))[0] || "unknown";
             const stdout = runPy(args, cwd);
             let data: TraceResult;
             try { data = JSON.parse(stdout); } catch { return stdout; }
