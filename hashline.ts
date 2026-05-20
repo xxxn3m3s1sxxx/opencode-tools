@@ -5,6 +5,7 @@ import { randomUUID } from "crypto"
 import { readFileSync, writeFileSync, unlinkSync, existsSync } from "fs"
 import { resolve, isAbsolute, dirname, join } from "path"
 import { fileURLToPath } from "url"
+import { detectPython } from "./utils.ts"
 
 let pluginDir = ""
 try {
@@ -21,14 +22,8 @@ function strip(e: any): string {
   return e.stderr?.toString().trim() || e.stdout?.toString().trim() || e.message || String(e)
 }
 
-async function which($: any, cmd: string): Promise<boolean> {
-  try { return (await $`which ${cmd}`.quiet().nothrow()).exitCode === 0 } catch { return false }
-}
-
 const HashlinePlugin: Plugin = async ({ $, worktree }) => {
-  const python = process.platform === "win32"
-    ? (await which($, "python")) ? "python" : (await which($, "py")) ? "py" : "python3"
-    : (await which($, "python3")) ? "python3" : (await which($, "py")) ? "py" : "python"
+  const python = detectPython()
   const hlPy = [...(pluginDir ? [resolve(pluginDir, "hashline.py")] : []), `${worktree}/hashline.py`]
     .find(existsSync)
 
