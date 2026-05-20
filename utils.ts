@@ -1,4 +1,21 @@
 import { spawnSync } from "child_process"
+import { existsSync } from "fs"
+import { resolve, dirname } from "path"
+import { fileURLToPath } from "url"
+
+let _pluginDir = ""
+try {
+  _pluginDir = dirname(fileURLToPath(import.meta.url))
+} catch { /* not in ES module context */ }
+
+export function findToolPy(name: string, cwd: string): string {
+  const candidates: string[] = []
+  if (_pluginDir) candidates.push(resolve(_pluginDir, name))
+  candidates.push(resolve(cwd, name))
+  const found = candidates.find(existsSync)
+  if (!found) throw new Error(`${name} not found in plugin dir or CWD (${cwd}) — run install script or copy .py files to project root`)
+  return found
+}
 
 const _pythonCache = new Map<string, string>()
 

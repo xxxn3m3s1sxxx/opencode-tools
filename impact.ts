@@ -1,7 +1,7 @@
 import type { Plugin } from "@opencode-ai/plugin";
 import { tool } from "@opencode-ai/plugin";
 import { spawnSync } from "child_process";
-import { detectPython, splitArgs } from "./utils.ts";
+import { detectPython, splitArgs, findToolPy } from "./utils.ts";
 
 interface ImpactResult {
   symbol: string;
@@ -92,7 +92,7 @@ function formatOutput(symbol: string, data: ImpactResult): string {
 }
 
 async function runImpact(args: string[], cwd: string): Promise<string> {
-  const proc = spawnSync(detectPython(), ["impact.py", ...args], { cwd, encoding: "utf-8", timeout: 30000 });
+  const proc = spawnSync(detectPython(), [findToolPy("impact.py", cwd), ...args], { cwd, encoding: "utf-8", timeout: 30000 });
   if (proc.error) throw proc.error;
   if (proc.status !== 0) {
     const msg = (proc.stderr?.trim() || proc.stdout?.trim() || `exit ${proc.status}`);

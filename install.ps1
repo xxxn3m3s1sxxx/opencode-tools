@@ -85,7 +85,15 @@ foreach ($tool in $Tools) {
     Install-File "$tool.ts" "$PluginDir\$tool.ts" "$tool.ts"
 }
 
-# --- Install engines ---
+# --- Install .py to plugin dir ---
+foreach ($tool in $Tools) {
+    $PluginPy = "$PluginDir\$tool.py"
+    if (-not (Test-Path $PluginPy)) {
+        Install-File "$tool.py" "$PluginPy" "$tool.py (plugin)"
+    }
+}
+
+# --- Install engines (project root) ---
 foreach ($tool in $Tools) {
     $EngineDest = "$Project\$tool.py"
     if (Test-Path $EngineDest) {

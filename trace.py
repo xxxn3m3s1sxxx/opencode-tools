@@ -45,7 +45,7 @@ except ImportError:
 
 def _read_file(filepath):
     """Read file, stripping BOM and normalizing CRLF to LF."""
-    with open(filepath, 'r', encoding='utf-8-sig') as f:
+    with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
         return f.read().replace("\r\n", "\n")
 
 
@@ -297,6 +297,10 @@ def main():
             continue
         if a == '--viz':
             i += 1
+            continue
+        if a == '--root' and i + 1 < len(args):
+            root_dir = args[i + 1]
+            i += 2
             continue
         if a.startswith('--root='):
             root_dir = a.split('=', 1)[1]

@@ -30,7 +30,7 @@ import sys
 def _read_file(filepath):
     """Read file content, return (lines, raw)."""
     try:
-        with open(filepath, 'r', encoding='utf-8-sig') as f:
+        with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
             raw = f.read()
         raw = raw.replace("\r\n", "\n")
         lines = raw.split("\n") if raw else []

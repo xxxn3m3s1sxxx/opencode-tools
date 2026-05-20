@@ -63,7 +63,7 @@ def _find_files(root: str, lang: str = 'all') -> list[str]:
 def _read_file(filepath: str) -> str | None:
     """Read file with BOM + CRLF normalization."""
     try:
-        with open(filepath, 'r', encoding='utf-8-sig') as f:
+        with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
             return f.read().replace("\r\n", "\n")
     except (OSError, UnicodeDecodeError):
         return None

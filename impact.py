@@ -25,7 +25,7 @@ from pathlib import Path
 
 def _read_file(filepath):
     """Read file, stripping BOM and normalizing CRLF to LF."""
-    with open(filepath, 'r', encoding='utf-8-sig') as f:
+    with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
         return f.read().replace("\r\n", "\n")
 
 
@@ -607,12 +607,28 @@ def main():
     use_json = '--json' in args
     lang = 'all'
     root_dir = None
+    next_is_root = False
+    next_is_lang = False
     clean_args = []
     for a in args:
+        if next_is_root:
+            root_dir = a
+            next_is_root = False
+            continue
+        if next_is_lang:
+            lang = a
+            next_is_lang = False
+            continue
         if a == '--json':
+            continue
+        if a == '--root' and not next_is_root:
+            next_is_root = True
             continue
         if a.startswith('--root='):
             root_dir = a.split('=', 1)[1]
+            continue
+        if a == '--lang' and not next_is_lang:
+            next_is_lang = True
             continue
         if a.startswith('--lang='):
             lang = a.split('=', 1)[1]

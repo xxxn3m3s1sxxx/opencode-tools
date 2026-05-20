@@ -1,7 +1,7 @@
 import type { Plugin } from "@opencode-ai/plugin";
 import { tool } from "@opencode-ai/plugin";
 import { spawnSync } from "child_process";
-import { detectPython, splitArgs } from "./utils.ts";
+import { detectPython, splitArgs, findToolPy } from "./utils.ts";
 
 export default (async () => {
   const z = tool.schema
@@ -32,7 +32,7 @@ Examples:
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^verify(?:\.py)?\s+/, "");
             const args = splitArgs(raw);
-            const proc = spawnSync(detectPython(), ["verify.py", ...args], { cwd, encoding: "utf-8", timeout: 30000 });
+            const proc = spawnSync(detectPython(), [findToolPy("verify.py", cwd), ...args], { cwd, encoding: "utf-8", timeout: 30000 });
             if (proc.error) throw proc.error;
             const output = (proc.stdout || "").trim();
             const err = (proc.stderr || "").trim();

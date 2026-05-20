@@ -10,7 +10,7 @@ REM   install.bat C:\atlas
 setlocal enabledelayedexpansion
 
 set "REPO_BASE=https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
-set "TOOLS=hashline impact verify trace changelog graph lint refactor rename search"
+set "TOOLS=utils hashline impact verify trace changelog graph lint refactor rename search"
 
 REM --- Detect OpenCode config dir ---
 if defined XDG_CONFIG_HOME (
@@ -54,18 +54,29 @@ for %%t in (%TOOLS%) do (
     )
 )
 
-REM --- Install engines ---
+REM --- Install .py to plugins dir ---
 for %%t in (%TOOLS%) do (
-    if not exist "%PROJECT%\%%t.py" (
-        echo   [%%t] engine...
-        powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.py' -OutFile '%PROJECT%\%%t.py' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
-        if exist "%PROJECT%\%%t.py" (
-            echo     OK
-        ) else (
-            echo     SKIP (download failed)
+    if not "%%t"=="utils" (
+        if not exist "%OPCODE_DIR%\plugins\%%t.py" (
+            powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.py' -OutFile '%OPCODE_DIR%\plugins\%%t.py' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
         )
-    ) else (
-        echo   [%%t] engine exists
+    )
+)
+
+REM --- Install engines (project root) ---
+for %%t in (%TOOLS%) do (
+    if not "%%t"=="utils" (
+        if not exist "%PROJECT%\%%t.py" (
+            echo   [%%t] engine...
+            powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.py' -OutFile '%PROJECT%\%%t.py' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
+            if exist "%PROJECT%\%%t.py" (
+                echo     OK
+            ) else (
+                echo     SKIP (download failed)
+            )
+        ) else (
+            echo   [%%t] engine exists
+        )
     )
 )
 

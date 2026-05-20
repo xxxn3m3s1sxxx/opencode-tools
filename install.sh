@@ -45,6 +45,18 @@ for tool in $TOOLS; do
   fi
 done
 
+# Install .py to plugin dir (for plugin system)
+for tool in $TOOLS; do
+  [ "$tool" = "utils" ] && continue
+  src="${tool}.py"
+  dst="$PLUGIN_DIR/$src"
+  if [ -f "$src" ]; then
+    cp "$src" "$dst"
+  elif [ ! -f "$dst" ]; then
+    curl -fsSL "$REPO/$src" -o "$dst" 2>/dev/null || true
+  fi
+done
+
 # Install engines (.py, skip utils.ts which has no .py)
 for tool in $TOOLS; do
   [ "$tool" = "utils" ] && continue

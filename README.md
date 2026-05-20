@@ -67,10 +67,10 @@ curl -fsSL https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main/i
 ## Manual Install
 
 ```bash
-# 1. Copy all plugin files to OpenCode plugins dir
-cp *.ts ~/.config/opencode/plugins/
+# 1. Copy all plugin files + engines to OpenCode plugins dir
+cp *.ts *.py ~/.config/opencode/plugins/
 
-# 2. Copy engine files to your project root
+# 2. (Optional) Copy engines to project root for CLI usage
 cp *.py /path/to/project/
 
 # 3. Restart OpenCode
