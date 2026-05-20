@@ -369,8 +369,7 @@ class ImpactAnalyzer:
         if _is_python(filepath):
             matches = []
             try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    source = f.read()
+                source = _read_file(filepath)
                 tree = ast.parse(source, filepath)
             except (SyntaxError, OSError):
                 return matches
@@ -386,8 +385,7 @@ class ImpactAnalyzer:
         elif _is_cpp(filepath):
             matches = []
             try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    source = f.read()
+                source = _read_file(filepath)
             except OSError:
                 return matches
             for pattern, kind in CPP_DEF_PATTERNS:
@@ -418,8 +416,7 @@ class ImpactAnalyzer:
             if not _is_python(d['file']):
                 continue
             try:
-                with open(d['file'], 'r', encoding='utf-8') as f:
-                    source = f.read()
+                source = _read_file(d['file'])
                 tree = ast.parse(source, d['file'])
             except SyntaxError:
                 continue
@@ -466,8 +463,8 @@ class ImpactAnalyzer:
         Priority: function/method call > class/function def > identifier.
         """
         try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
+            source = _read_file(filepath)
+            lines = source.split("\n") if source else []
         except OSError:
             return None
 
