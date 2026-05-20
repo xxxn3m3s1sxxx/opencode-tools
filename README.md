@@ -1,146 +1,148 @@
 # OpenCode Tools — Reliability Toolbox for AI-Assisted Development
 
-[![Tests](https://img.shields.io/badge/tools-2-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tools-13-brightgreen)]()
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)]()
 [![Windows](https://img.shields.io/badge/windows-passing-brightgreen)]()
 [![Linux](https://img.shields.io/badge/linux-passing-brightgreen)]()
 
 A collection of OpenCode plugins that solve real problems in AI-assisted coding.
-No external dependencies. Just Python 3 + zero-fuss install.
+No external Python dependencies. Zero-fuss install.
 
 ## Tools
 
-### Verify — Post-Edit Verification
+### Core Editing
+| Tool | File | Description |
+|------|------|-------------|
+| `edit` | hashline.py | Edit file by finding and replacing text. Tries exact match, auto-retries with hash-anchored fallback. |
+| `hashline_edit` | hashline.py | Explicit hash-anchored content edit. Handles trailing whitespace, indent mismatches, extra blank lines. |
+| `hashline_patch` | hashline.py | Apply raw hashline diff format to a file. `@@ path / + ANCHOR~payload / - A..B` |
+| `hashline_stats` | hashline.py | Show edit() intervention rate — how often direct match fails and hashline salvages. |
 
-After every edit, know for sure it worked. Verify reads the file back and
-confirms the expected change is present — or tells you exactly what's wrong.
+### Analysis
+| Tool | File | Description |
+|------|------|-------------|
+| `impact` | impact.py | Change impact analyzer. Find definitions, references, tests, callers for any symbol. Python AST + C++ heuristics. |
+| `verify` | verify.py | Post-edit verification. Confirm file has expected content, check line, context, old/new. |
+| `trace` | trace.py | Recursive call chain analyzer. Follow execution paths: who calls a function, what it calls. |
+| `graph` | graph.py | File-level dependency analyzer. Show imports, dependents, dependency trees, cycles. Python/TS/C++. |
+| `search` | search.py | Rich grep wrapper with regex, file filters (--include), context lines (--context), JSON output. |
+| `lint` | lint.py | Run project lint/typecheck and parse output into structured results. Supports ruff/eslint/tsc/mypy/pylint. |
 
-```
-verify atlas_api.cpp:20 "atlas_valloc"     Line 20 has atlas_valloc?
-verify impact.py --old "bug" --new "fix"     Replace verified?
-verify atlas_api.cpp                          File summary (lines, hash)
-verify atlas_infer.py:612 --context 5         Context at line 612
-```
+### Refactoring
+| Tool | File | Description |
+|------|------|-------------|
+| `rename` | rename.py | Word-boundary `\b` symbol renaming across all source files. Multi-language. |
+| `refactor` | refactor.py | **AST-based** symbol renaming (Python). Safer than word-boundary — no false positives on partial matches. |
 
-**Status:** Beta — 48 tests · post-edit confidence check
-
-### Hashline — Hash-Anchored Editing
-
-`edit()` fails when the AI model reproduces old text with trailing whitespace,
-wrong indentation, or extra blank lines. Hashline catches those failures
-transparently with auto-fallback.
-
-```
-edit() → direct match OK           → applied immediately
-edit() → "oldString not found"     → hashline retries → applied
-edit() → hashline also fails       → clear error with hints
-```
-
-**Status:** Stable — 130/130 tests · 3 real bugs found and fixed
-
-### Impact — Change Impact Analyzer
-
-Before you edit a symbol, know what depends on it. Impact finds definitions,
-references, tests, and callers across your codebase.
-
-```
-impact atlas_valloc        → 2 defs · 19 refs · 0 tests
-impact AtlasModel --py      → class def + 50 references
-impact atlas_infer.py:152   → infer symbol from file:line
-impact graph generate_c     → 1 def · 1 ref · 20 callees
-```
-
-**Status:** Beta — Python AST + C++ heuristics · needs real-world testing
-
-### Trace — Recursive Call Chain Analysis
-
-Follow execution paths through your codebase. Find who calls a function,
-what it calls, and build full call trees.
-
-```
-trace forward                 Trace forward() through the codebase
-trace generate_c --down -d 3  Deep dive into generate_c callees
-trace AtlasModel --up         Who references AtlasModel?
-trace load_model --viz        ASCII tree visualization
-```
-
-**Status:** Alpha — 28 tests · Python AST only, C++ via grep heuristics
+### History
+| Tool | File | Description |
+|------|------|-------------|
+| `changelog` | changelog.py | Formatted git log with conventional-commit category grouping (feat/fix/docs/refactor/…). Auto-detects git root. |
 
 ## Quick Install
 
-```bash
-# One command — auto-detects everything
-curl -fsSL https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main/install.sh | sh
-
-# Windows
+**Windows (PowerShell):**
+```powershell
 .\install.ps1
+```
+
+**Windows (cmd):**
+```cmd
+install.bat
+```
+
+**Linux/macOS:**
+```bash
+chmod +x install.sh && ./install.sh
+```
+
+Or download from GitHub:
+```bash
+curl -fsSL https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main/install.sh | bash
 ```
 
 ## Manual Install
 
 ```bash
-# 1. Copy plugins to OpenCode
-cp hashline.ts ~/.config/opencode/plugins/
-cp impact.ts ~/.config/opencode/plugins/
+# 1. Copy all plugin files to OpenCode plugins dir
+cp *.ts ~/.config/opencode/plugins/
 
-# 2. Copy engines to your project
-cp hashline.py /path/to/project/
-cp impact.py /path/to/project/
+# 2. Copy engine files to your project root
+cp *.py /path/to/project/
 
 # 3. Restart OpenCode
 ```
 
-## Tools Added
+## Development
 
-| Tool | Plugin | Engine | Purpose |
-|---|---|---|---|---|
-| `edit()` | hashline.ts | hashline.py | Auto-fallback when string replace fails |
-| `hashline_edit()` | hashline.ts | hashline.py | Explicit hash-anchored edit |
-| `hashline_patch()` | hashline.ts | hashline.py | Raw hashline diff format |
-| `hashline_stats()` | hashline.ts | hashline.py | Show intervention rate |
-| `impact` | impact.ts | impact.py | Change impact analysis |
-| `verify` | verify.ts | verify.py | Post-edit verification |
-| `trace` | trace.ts | trace.py | Recursive call chain analysis |
+```bash
+# Run all tests
+python test_hashline.py
+python test_impact.py
+python test_verify.py
+python test_trace.py
+python test_graph.py
+python test_changelog.py
+python test_search.py
+python test_lint.py
+python test_refactor.py
+
+# Deep test suites
+python deeper_tests.py
+python regression_tests.py
+python stress_test.py
+```
+
+## Test Status (366+ tests, all green)
+
+| Suite | Tests | Status |
+|-------|-------|--------|
+| hashline | 42 core + 22 regression + 39 stress + 27 deep = 130 | ✅ All pass |
+| impact | 63 | ✅ All pass |
+| verify | 48 | ✅ All pass |
+| trace | 28 | ✅ All pass |
+| graph | 20 | ✅ All pass |
+| changelog | 25 | ✅ All pass |
+| search | 14 | ✅ All pass |
+| lint | 17 | ✅ All pass |
+| refactor | 21 | ✅ All pass |
 
 ## Project Structure
 
 ```
 opencode-tools/
-├── hashline.py             # Hashline engine (v0.3.0)
-├── hashline.ts             # Hashline OpenCode plugin
-├── test_hashline.py        # 42 core tests
-├── regression_tests.py     # 22 regression tests
-├── stress_test.py          # 39 stress tests
-├── deeper_tests.py         # 27 deep edge tests
-├── impact.py               # Impact engine (v0.1.1)
-├── impact.ts               # Impact OpenCode plugin
-├── test_impact.py          # 61 tests
-├── verify.py               # Verify engine (v0.1.0)
-├── verify.ts               # Verify OpenCode plugin
-├── test_verify.py          # 48 tests
-├── trace.py                # Trace engine (v0.1.0)
-├── trace.ts                # Trace OpenCode plugin
-├── test_trace.py           # 28 tests
-├── install.sh              # Linux/macOS installer
-├── install.ps1             # Windows installer
+├── utils.ts              # Shared utilities (detectPython, splitArgs)
+├── hashline.py/.ts       # Hash-anchored editing (v0.3.0)
+├── impact.py/.ts         # Change impact analysis (v0.1.1)
+├── verify.py/.ts         # Post-edit verification (v0.1.0)
+├── trace.py/.ts          # Recursive call chain (v0.1.0)
+├── rename.py/.ts         # Word-boundary rename (v0.1.0)
+├── graph.py/.ts          # Dependency graph (v0.1.0)
+├── changelog.py/.ts      # Formatted git log (v0.1.0)
+├── search.py/.ts         # Rich grep (v0.1.0)
+├── lint.py/.ts           # Lint runner (v0.1.0)
+├── refactor.py/.ts       # AST-based rename (v0.1.0)
+├── test_*.py             # Test suites
+├── deeper_tests.py       # 27 deep edge tests
+├── regression_tests.py   # 22 regression tests
+├── stress_test.py        # 39 stress tests
+├── install.sh            # Linux/macOS installer
+├── install.ps1           # Windows PowerShell installer
+├── install.bat           # Windows cmd installer
 ├── .github/workflows/ci.yml
 ├── package.json
 └── README.md
-```
-
-## Test Status
-
-```
-hashline: 130/130  (42 core + 22 regression + 39 stress + 27 deep)
-impact:   63/63    (Python AST + C++ regex + CLI + edge cases)
-verify:   48/48    (read, contains, context, replace, CLI, edge cases)
-trace:    28/28    (call chain, callers/callees, CLI, viz)
 ```
 
 ## Why Separate Tools?
 
 Each tool solves one problem and solves it well. Combined install for
 convenience, independent versioning for flexibility.
+
+## Tech Stack
+- **Plugins**: TypeScript, @opencode-ai/plugin v1.14.20
+- **Engines**: Python 3.10+ (stdlib only — no external deps)
+- **Tests**: Python unittest (no pytest required)
 
 ## License
 

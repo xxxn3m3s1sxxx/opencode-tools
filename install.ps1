@@ -1,11 +1,11 @@
 # OpenCode Tools — Combined installer (PowerShell)
 #
-# Installs all OpenCode tools (hashline, impact) in one command.
+# Installs all OpenCode tools (13 plugins + engines) in one command.
 # Auto-detects OpenCode config dir, project root, and Python.
 #
 # Usage:
 #   .\install.ps1
-#   .\install.ps1 -Project C:\atlas
+#   .\install.ps1 -Project C:\project
 #   .\install.ps1 -Project . -Offline
 
 param(
@@ -15,7 +15,8 @@ param(
 
 $RepoBase = "https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
 $ErrorActionPreference = "Stop"
-$Tools = @("hashline", "impact", "verify", "trace")
+$Tools = @("hashline", "impact", "verify", "trace", "rename", "graph", "changelog", "search", "lint", "refactor")
+$AllFiles = @("utils.ts") + ($Tools | ForEach-Object { "$_.ts", "$_.py" })
 
 function Write-Step($msg) { Write-Host "  $msg" -ForegroundColor Green }
 function Write-Skip($msg) { Write-Host "  $msg" -ForegroundColor Yellow }
@@ -45,20 +46,18 @@ $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { "" }
 
 Write-Host "`n  +------------------------------------------+"
 Write-Host "  |  OpenCode Tools Installer                |"
-Write-Host "  |  hashline + impact + verify + trace      |"
+Write-Host "  |  13 plugins + engines                    |"
 Write-Host "  +------------------------------------------+`n"
 Write-Host "  Config: $OpencodeDir"
 Write-Host "  Project: $Project`n"
 
 # --- Helper ---
 function Install-File($src, $dest, $name) {
-    # Local copy (flat or tool subdir)
     if ($ScriptDir -and (Test-Path "$ScriptDir\$src")) {
         Copy-Item -LiteralPath "$ScriptDir\$src" -Destination $dest -Force
         Write-Step "$name -> $dest (local)"
         return $true
     }
-    # Download
     if (-not $Offline) {
         try {
             $url = "$RepoBase/$src" -replace '\\', '/'
@@ -69,7 +68,7 @@ function Install-File($src, $dest, $name) {
             Write-Err "Download failed: $_"
         }
     }
-    Write-Err "SKIP $name (not found)"
+    Write-Err "SKIP $src (not found)"
     return $false
 }
 
@@ -77,9 +76,13 @@ function Install-File($src, $dest, $name) {
 $PluginDir = "$OpencodeDir\plugins"
 if (-not (Test-Path $PluginDir)) { New-Item -ItemType Directory -Path $PluginDir -Force | Out-Null }
 
+# utils.ts (shared)
+Write-Host "  [utils] plugin..."
+Install-File "utils.ts" "$PluginDir\utils.ts" "utils.ts"
+
 foreach ($tool in $Tools) {
     Write-Host "  [$tool] plugin..."
-    Install-File "$tool.ts" "$PluginDir\$tool.ts" "Plugin"
+    Install-File "$tool.ts" "$PluginDir\$tool.ts" "$tool.ts"
 }
 
 # --- Install engines ---
@@ -89,7 +92,10 @@ foreach ($tool in $Tools) {
         Write-Skip "  [$tool] engine -> $EngineDest (exists)"
     } else {
         Write-Host "  [$tool] engine..."
-        Install-File "$tool.py" "$EngineDest" "Engine"
+        Install-File "$tool.py" "$EngineDest" "$tool.py"
+        if (-not (Test-Path $EngineDest)) {
+            Write-Err "  [$tool] engine INSTALL FAILED"
+        }
     }
 }
 
@@ -108,11 +114,9 @@ foreach ($tool in $Tools) {
 
 # --- Done ---
 Write-Host "`n  Tools installed! Restart OpenCode to activate.`n"
-Write-Host "  Installed: hashline + impact + verify + trace`n"
+Write-Host "  Installed: $($Tools -join ', ')`n"
 Write-Host "  Test:"
-Write-Host "    python $Project\hashline.py --version"
-Write-Host "    python $Project\impact.py --version"
-Write-Host "    python $Project\verify.py --version"
-Write-Host "    python $Project\trace.py --version"
-Write-Host "    python $Project\test_hashline.py"
+foreach ($tool in $Tools) {
+    Write-Host "    python $Project\$tool.py --version"
+}
 Write-Host ""

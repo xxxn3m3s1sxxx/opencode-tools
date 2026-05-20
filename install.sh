@@ -1,84 +1,78 @@
-@echo off
-REM OpenCode Tools — Windows cmd installer
-REM hashline + impact + verify + trace
-REM
-REM Usage:
-REM   install.bat
-REM   install.bat "C:\path\to\project"
+#!/usr/bin/env bash
+# OpenCode Tools — Linux/macOS installer
+# Installs all OpenCode plugin tools in one command.
+#
+# Usage:
+#   ./install.sh
+#   ./install.sh /path/to/project
 
-setlocal enabledelayedexpansion
+set -euo pipefail
 
-set REPO=https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main
-set TOOLS=hashline impact verify trace
+REPO="https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
+TOOLS="utils hashline impact verify trace rename graph changelog search lint refactor"
+OPCODE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
+PLUGIN_DIR="$OPCODE_DIR/plugins"
 
-REM Detect OpenCode config dir
-if defined XDG_CONFIG_HOME (
-    set OPDIR=%XDG_CONFIG_HOME%\opencode
-) else if defined HOME (
-    set OPDIR=%HOME%\.config\opencode
-) else (
-    set OPDIR=%USERPROFILE%\.config\opencode
-)
+# Detect project root
+PROJECT="${1:-}"
+if [ -z "$PROJECT" ]; then
+  PROJECT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+fi
 
-REM Detect project root
-if "%~1"=="" (
-    for /f "delims=" %%i in ('git rev-parse --show-toplevel 2^>nul') do set PROJ=%%i
-    if not defined PROJ set PROJ=%CD%
-) else (
-    set PROJ=%~1
-)
+echo ""
+echo "  +------------------------------------------+"
+echo "  |  OpenCode Tools Installer                |"
+echo "  |  13 plugins + engines                    |"
+echo "  +------------------------------------------+"
+echo ""
+echo "  Config:  $OPCODE_DIR"
+echo "  Project: $PROJECT"
+echo ""
 
-echo.
-echo  +------------------------------------------+
-echo  ^|  OpenCode Tools Installer                ^|
-echo  ^|  hashline + impact + verify + trace      ^|
-echo  +------------------------------------------+
-echo.
-echo  Config: %OPDIR%
-echo  Project: %PROJ%
-echo.
+# Create dirs
+mkdir -p "$PLUGIN_DIR"
 
-REM Create plugins dir
-if not exist "%OPDIR%\plugins\" mkdir "%OPDIR%\plugins"
+# Install plugins (.ts)
+for tool in $TOOLS; do
+  src="${tool}.ts"
+  dst="$PLUGIN_DIR/$src"
+  if [ -f "$src" ]; then
+    cp "$src" "$dst"
+    echo "  [plugin] $tool -> $dst (local)"
+  else
+    echo "  [plugin] $tool -> downloading..."
+    curl -fsSL "$REPO/$src" -o "$dst" 2>/dev/null || echo "  [WARN] $tool download failed"
+  fi
+done
 
-REM Install plugins (TS files)
-for %%t in (%TOOLS%) do (
-    if exist "%%t.ts" (
-        copy /Y "%%t.ts" "%OPDIR%\plugins\%%t.ts" >nul
-        echo  [%%t] plugin -^> %OPDIR%\plugins\%%t.ts
-    ) else (
-        echo  [%%t] plugin -^> downloading...
-        powershell -Command "Invoke-WebRequest -Uri '%REPO%/%%t.ts' -OutFile '%OPDIR%\plugins\%%t.ts'" >nul 2>&1
-    )
-)
+# Install engines (.py, skip utils.ts which has no .py)
+for tool in $TOOLS; do
+  [ "$tool" = "utils" ] && continue
+  src="${tool}.py"
+  dst="$PROJECT/$src"
+  if [ -f "$src" ]; then
+    cp "$src" "$dst"
+    echo "  [engine] $tool -> $dst (local)"
+  elif [ ! -f "$dst" ]; then
+    echo "  [engine] $tool -> downloading..."
+    curl -fsSL "$REPO/$src" -o "$dst" 2>/dev/null || echo "  [WARN] $tool download failed"
+  else
+    echo "  [engine] $tool -> $dst (exists)"
+  fi
+done
 
-REM Install engines (PY files)
-for %%t in (%TOOLS%) do (
-    if exist "%%t.py" (
-        copy /Y "%%t.py" "%PROJ%\%%t.py" >nul
-        echo  [%%t] engine -^> %PROJ%\%%t.py
-    ) else if not exist "%PROJ%\%%t.py" (
-        echo  [%%t] engine -^> downloading...
-        powershell -Command "Invoke-WebRequest -Uri '%REPO%/%%t.py' -OutFile '%PROJ%\%%t.py'" >nul 2>&1
-    ) else (
-        echo  [%%t] engine -^> %PROJ%\%%t.py (exists)
-    )
-)
+# Verify
+echo ""
+for tool in $TOOLS; do
+  [ "$tool" = "utils" ] && continue
+  ver=$(python3 "$PROJECT/${tool}.py" --version 2>/dev/null || python "$PROJECT/${tool}.py" --version 2>/dev/null || true)
+  if [ -n "$ver" ]; then
+    echo "  $ver"
+  else
+    echo "  [WARN] $tool: verify failed"
+  fi
+done
 
-REM Verify
-echo.
-for %%t in (%TOOLS%) do (
-    python "%PROJ%\%%t.py" --version >nul 2>&1
-    if !errorlevel! equ 0 (
-        for /f "delims=" %%v in ('python "%PROJ%\%%t.py" --version 2^>^&1') do echo  %%v
-    ) else (
-        echo  [WARN] %%t: verification failed
-    )
-)
-
-echo.
-echo  Tools installed! Restart OpenCode to activate.
-echo.
-echo  Test:
-echo    python %PROJ%\hashline.py --version
-echo.
+echo ""
+echo "  Tools installed! Restart OpenCode to activate."
+echo ""
