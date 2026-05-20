@@ -27,7 +27,7 @@ from pathlib import Path
 
 CPP_DEF_PATTERNS = [
     # Function: return_type func_name(args) {
-    (r'(?:\w[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{',
+    (r'(?:\w[\w:<>*&]*\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{',
      'function'),
     # Function declaration: return_type func_name(args);
     (r'(?:\w[\w:<>*&]+\s+)(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*;',
@@ -342,6 +342,49 @@ class ImpactAnalyzer:
                 unique.append(r)
         return unique
 
+    def find_all_defs_in_file(self, filepath):
+        """Find all symbol definitions in a single file."""
+        if not os.path.exists(filepath):
+            return []
+        if _is_python(filepath):
+            matches = []
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    source = f.read()
+                tree = ast.parse(source, filepath)
+            except (SyntaxError, OSError):
+                return matches
+            for node in ast.walk(tree):
+                name = None; line = getattr(node, 'lineno', 0); kind = None
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    name = node.name; kind = 'function'
+                elif isinstance(node, ast.ClassDef):
+                    name = node.name; kind = 'class'
+                if name:
+                    matches.append({'name': name, 'type': kind, 'line': line})
+            return sorted(matches, key=lambda x: x['line'])
+        elif _is_cpp(filepath):
+            matches = []
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    source = f.read()
+            except OSError:
+                return matches
+            for pattern, kind in CPP_DEF_PATTERNS:
+                for m in re.finditer(pattern, source):
+                    name = m.group(1) if kind != 'method' else m.group(2)
+                    line_no = source[:m.start()].count('\n') + 1
+                    matches.append({'name': name, 'type': kind, 'line': line_no})
+            seen = set()
+            unique = []
+            for m in sorted(matches, key=lambda x: x['line']):
+                key = (m['name'], m['line'])
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(m)
+            return unique
+        return []
+
     def find_callees(self, symbol, lang='all'):
         """Find what functions/methods are called by a definition (Python only)."""
         # Find the definition first
@@ -363,11 +406,22 @@ class ImpactAnalyzer:
 
             # Find the function/class node
             for node in ast.walk(tree):
-                if hasattr(node, 'name') and node.name == symbol and \
-                   hasattr(node, 'lineno') and node.lineno == d['line']:
-                    # Walk this node's body for calls
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and \
+                   node.name == symbol and hasattr(node, 'lineno') and node.lineno == d['line']:
+                    # Collect line ranges of nested defs to skip their children
+                    nested_ranges = []
+                    for child in ast.walk(node):
+                        if child is node:
+                            continue
+                        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                            if hasattr(child, 'lineno') and hasattr(child, 'end_lineno'):
+                                nested_ranges.append((child.lineno, child.end_lineno))
+                    # Walk this node's direct calls (skip nested def bodies)
                     for child in ast.walk(node):
                         if isinstance(child, ast.Call):
+                            in_nested = any(start <= child.lineno <= end for start, end in nested_ranges)
+                            if in_nested:
+                                continue
                             if isinstance(child.func, ast.Name):
                                 callees.append({
                                     'name': child.func.id,
@@ -401,7 +455,7 @@ class ImpactAnalyzer:
         line = lines[line_no - 1]
 
         # 1. Function call pattern: identifier(args)
-        call_match = re.search(r'([a-z_]\w*)\s*\(', line)
+        call_match = re.search(r'([A-Za-z_]\w*)\s*\(', line)
         if call_match:
             return call_match.group(1)
 
@@ -449,7 +503,8 @@ def format_pretty(symbol, defs, refs, tests, callees, root):
         lines.append("    (not found)")
 
     # References (excluding definitions)
-    refs_only = [r for r in refs if r not in defs]
+    def_lines = {(d['file'], d['line']) for d in defs}
+    refs_only = [r for r in refs if (r['file'], r['line']) not in def_lines]
     lines.append(f"")
     lines.append(f"  [ref] {_fmt_line_count(len(refs_only))}")
     for r in refs_only[:20]:
@@ -580,6 +635,26 @@ def main():
             print(format_pretty(symbol, [], [], tests, [], analyzer.root))
         return 0
 
+    elif cmd in ('file',):
+        if len(clean_args) < 2:
+            print("usage: impact file <path>")
+            return 1
+        filepath = clean_args[1]
+        resolved = filepath if os.path.exists(filepath) else os.path.join(analyzer.root, filepath)
+        if not os.path.exists(resolved):
+            print(f"File not found: {filepath}")
+            return 1
+        defs = analyzer.find_all_defs_in_file(resolved)
+        if use_json:
+            print(json.dumps({'file': str(resolved), 'symbols': defs}, indent=2))
+        else:
+            lines = [f"impact file: {os.path.relpath(resolved, analyzer.root)}"]
+            lines.append(f"  {len(defs)} symbols defined")
+            for d in defs:
+                lines.append(f"    {d['line']:4d}  ({d['type']:<10s}) {d['name']}")
+            print('\n'.join(lines))
+        return 0
+
     elif cmd in ('graph', 'callees'):
         if len(clean_args) < 2:
             print("usage: impact graph <symbol>")
@@ -604,9 +679,19 @@ def main():
             parts = cmd.rsplit(':', 1)
             maybe_file = parts[0]
             maybe_line = parts[1]
-            if maybe_line.isdigit() and os.path.exists(maybe_file):
-                file_line = (maybe_file, int(maybe_line))
-                inferred = analyzer.infer_symbol(maybe_file, int(maybe_line))
+            resolved_file = maybe_file
+            if maybe_line.isdigit():
+                if os.path.exists(maybe_file):
+                    resolved_file = maybe_file
+                else:
+                    joined = os.path.join(analyzer.root, maybe_file)
+                    if os.path.exists(joined):
+                        resolved_file = joined
+            if not os.path.exists(resolved_file) or not maybe_line.isdigit():
+                pass  # Not a file:line reference, treat as symbol
+            else:
+                file_line = (resolved_file, int(maybe_line))
+                inferred = analyzer.infer_symbol(resolved_file, int(maybe_line))
                 if inferred:
                     symbol = inferred
                 else:

@@ -319,6 +319,16 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn('0.1.0', out)
 
+    def test_diff(self):
+        code, out = _run([self.path, '--diff'])
+        # May fail if not in git repo, but should not crash
+        self.assertIn(code, (0, 1))
+        self.assertNotIn('[ERROR]', out)
+
+    def test_diff_unknown_flag(self):
+        code, out = _run([self.path, '--bogus_flag_x'])
+        self.assertEqual(code, 1)
+
 
 if __name__ == '__main__':
     unittest.main()

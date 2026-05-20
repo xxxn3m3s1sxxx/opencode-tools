@@ -15,7 +15,7 @@ param(
 
 $RepoBase = "https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
 $ErrorActionPreference = "Stop"
-$Tools = @("hashline", "impact", "verify")
+$Tools = @("hashline", "impact", "verify", "trace")
 
 function Write-Step($msg) { Write-Host "  $msg" -ForegroundColor Green }
 function Write-Skip($msg) { Write-Host "  $msg" -ForegroundColor Yellow }
@@ -45,7 +45,7 @@ $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { "" }
 
 Write-Host "`n  +------------------------------------------+"
 Write-Host "  |  OpenCode Tools Installer                |"
-Write-Host "  |  hashline + impact + (more coming)       |"
+Write-Host "  |  hashline + impact + verify + trace      |"
 Write-Host "  +------------------------------------------+`n"
 Write-Host "  Config: $OpencodeDir"
 Write-Host "  Project: $Project`n"
@@ -108,9 +108,11 @@ foreach ($tool in $Tools) {
 
 # --- Done ---
 Write-Host "`n  Tools installed! Restart OpenCode to activate.`n"
-Write-Host "  Installed: hashline (stable) + impact (beta)`n"
+Write-Host "  Installed: hashline + impact + verify + trace`n"
 Write-Host "  Test:"
 Write-Host "    python $Project\hashline.py --version"
 Write-Host "    python $Project\impact.py --version"
+Write-Host "    python $Project\verify.py --version"
+Write-Host "    python $Project\trace.py --version"
 Write-Host "    python $Project\test_hashline.py"
 Write-Host ""

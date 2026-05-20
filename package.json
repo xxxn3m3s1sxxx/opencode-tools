@@ -1,8 +1,8 @@
 {
   "name": "opencode-tools",
-  "version": "0.1.0",
-  "description": "Reliability toolbox for AI-assisted coding — verify + hashline + impact",
-  "keywords": ["opencode", "plugin", "hashline", "impact", "edit", "analysis"],
+  "version": "0.2.0",
+  "description": "Reliability toolbox for AI-assisted coding — hashline + impact + verify + trace",
+  "keywords": ["opencode", "plugin", "hashline", "impact", "verify", "trace", "edit", "analysis"],
   "license": "MIT",
   "type": "module",
   "files": [
@@ -10,12 +10,17 @@
     "hashline.py",
     "impact.ts",
     "impact.py",
+    "verify.ts",
+    "verify.py",
+    "trace.ts",
+    "trace.py",
     "README.md"
   ],
   "scripts": {
-    "test": "python hashline.py --version && python impact.py --version"
+    "test": "python hashline.py --version && python impact.py --version && python verify.py --version && python trace.py --version"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^0.1.0"
+    "@opencode-ai/plugin": "^0.1.0",
+    "@opencode-ai/sdk": "^0.1.0"
   }
 }

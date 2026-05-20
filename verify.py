@@ -102,6 +102,35 @@ def cmd_context(filepath, lines, raw, target_line, context=3):
     }
 
 
+def cmd_diff(filepath, staged=False, context_lines=3):
+    """Show git diff for a file."""
+    try:
+        import subprocess
+        # Check if file is git-tracked
+        ls = subprocess.run(['git', 'ls-files', '--error-unmatch', filepath],
+                           capture_output=True, timeout=5)
+        if ls.returncode != 0:
+            return {'status': 'ok', 'check': 'diff', 'file': filepath,
+                    'diff': '(not a git repo or file not tracked)'}
+        cmd = ['git', 'diff']
+        if staged:
+            cmd.append('--cached')
+        cmd.extend(['--', filepath])
+        result = subprocess.run(cmd, capture_output=True, timeout=10)
+        stdout = result.stdout.decode('utf-8', errors='replace')
+        stderr = result.stderr.decode('utf-8', errors='replace')
+        if result.returncode != 0:
+            return {'status': 'error', 'message': f'git diff failed: {stderr.strip()}'}
+        diff = stdout.strip()
+        if not diff:
+            return {'status': 'ok', 'check': 'diff', 'file': filepath, 'diff': '(no changes)'}
+        return {'status': 'ok', 'check': 'diff', 'file': filepath, 'diff': diff}
+    except FileNotFoundError:
+        return {'status': 'ok', 'check': 'diff', 'file': filepath, 'diff': '(git not found)'}
+    except subprocess.TimeoutExpired:
+        return {'status': 'error', 'message': 'git diff timed out'}
+
+
 def cmd_contains(filepath, lines, raw, text, should_exist=True):
     """Check if text exists (or doesn't exist) in file."""
     found_line = _find_line(lines, text)
@@ -168,9 +197,11 @@ def cmd_replace_verify(filepath, lines, raw, old_text, new_text):
         'old_removed': old_ok,
         'old_line': old_found,
         'old_count': old_count,
+        'old_text': old_text,
         'new_present': new_ok,
         'new_line': new_found,
         'new_count': new_count,
+        'new_text': new_text,
     }
 
 
@@ -219,12 +250,22 @@ def format_pretty(result):
     elif check == 'replace_verify':
         old_s = '[OK]' if result['old_removed'] else '[FAIL]'
         new_s = '[OK]' if result['new_present'] else '[FAIL]'
-        lines.append(f'    old removed:    {old_s}  ("{old_text[:50]}" was at line {result["old_line"]}, {result["old_count"]}x)' if not result['old_removed'] else f'    old removed:    {old_s}')
+        old_t = result.get('old_text', '')
+        new_t = result.get('new_text', '')
+        lines.append(f'    old removed:    {old_s}  ("{old_t[:50]}" was at line {result["old_line"]}, {result["old_count"]}x)' if not result['old_removed'] else f'    old removed:    {old_s}')
         lines.append(f'    new present:    {new_s}  (line {result["new_line"]}, {result["new_count"]}x)' if result['new_present'] else f'    new present:    {new_s}')
         if result['status'] == 'ok':
             lines.append(f'    edit verified ✅')
         else:
             lines.append(f'    edit NOT verified ❌')
+
+    elif check == 'diff':
+        diff = result.get('diff', '')
+        if diff == '(no changes)':
+            lines.append(f'    no changes for {result.get("file", "?")}')
+        else:
+            for line in diff.split('\n'):
+                lines.append(f'    {line}')
 
     elif check == 'context':
         for ctx in result.get('context', []):
@@ -254,6 +295,8 @@ def main():
     context_lines = 3
     not_mode = False
     contains_mode = False
+    diff_mode = False
+    diff_staged = False
     target_line = None
 
     clean_args = []
@@ -264,6 +307,14 @@ def main():
     while i < len(args):
         a = args[i]
         if a == '--json':
+            i += 1
+            continue
+        if a == '--diff':
+            diff_mode = True
+            i += 1
+            continue
+        if a == '--staged':
+            diff_staged = True
             i += 1
             continue
         if a == '--context' and i + 1 < len(args):
@@ -311,6 +362,15 @@ def main():
         if parts[1].isdigit():
             filepath = parts[0]
             line_no = int(parts[1])
+
+    # Diff mode doesn't need file read
+    if diff_mode:
+        result = cmd_diff(filepath, staged=diff_staged)
+        if use_json:
+            print(json.dumps(result, indent=2))
+        else:
+            print(format_pretty(result))
+        return 0 if result.get('status') == 'ok' else 1
 
     lines, raw = _read_file(filepath)
     if lines is None:

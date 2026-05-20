@@ -532,6 +532,17 @@ class TestCLI(unittest.TestCase):
         self.assertIn('[def]', out)
         self.assertIn('[ref]', out)
 
+    def test_file_command(self):
+        code, out = self._run(['file', os.path.join(self.tmpdir, 'mod.py')])
+        self.assertEqual(code, 0)
+        self.assertIn('foo', out)
+        self.assertIn('bar', out)
+        self.assertIn('2 symbols', out)
+
+    def test_file_command_not_found(self):
+        code, out = self._run(['file', os.path.join(self.tmpdir, 'nope.py')])
+        self.assertEqual(code, 1)
+
     def test_json_flag(self):
         code, out = self._run(['foo', '--json'])
         self.assertEqual(code, 0)

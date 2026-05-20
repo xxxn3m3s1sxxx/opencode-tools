@@ -45,15 +45,22 @@ jobs:
       - name: impact smoke test
         run: python impact.py impact --json
 
-      - name: impact test suite (61)
+      - name: impact test suite (63)
         run: python test_impact.py
 
       # ── Verify tests ──
       - name: verify --version
         run: python verify.py --version
 
-      - name: verify test suite (46)
+      - name: verify test suite (48)
         run: python test_verify.py
+
+      # ── Trace tests ──
+      - name: trace --version
+        run: python trace.py --version
+
+      - name: trace test suite (28)
+        run: python test_trace.py
 
       # ── Bundle check ──
       - name: bundle check
