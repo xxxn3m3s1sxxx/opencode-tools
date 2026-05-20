@@ -255,7 +255,7 @@ with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding
     else:
         check("diff test (skipped)", True, "could not parse anchors")
     try: os.unlink(p)
-    except: pass
+    except OSError: pass
 
 # === 16. Check command ===
 with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:

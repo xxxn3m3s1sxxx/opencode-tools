@@ -94,7 +94,7 @@ const HashlinePlugin: Plugin = async ({ $, worktree }) => {
               `Try a smaller matching segment, or check file for whitespace differences.`
             )
           } finally {
-            try { unlinkSync(of) } catch {}; try { unlinkSync(nf) } catch {}
+            try { unlinkSync(of) } catch { /* cleanup */ }; try { unlinkSync(nf) } catch { /* cleanup */ }
           }
         }
       },
@@ -122,7 +122,7 @@ const HashlinePlugin: Plugin = async ({ $, worktree }) => {
         } catch (e: any) {
           throw new Error(`hashline_edit: ${strip(e)}`)
         } finally {
-          try { unlinkSync(of) } catch {}; try { unlinkSync(nf) } catch {}
+          try { unlinkSync(of) } catch { /* cleanup */ }; try { unlinkSync(nf) } catch { /* cleanup */ }
         }
       },
     }),
@@ -147,7 +147,7 @@ const HashlinePlugin: Plugin = async ({ $, worktree }) => {
         } catch (e: any) {
           throw new Error(`hashline_patch: ${strip(e)}`)
         } finally {
-          try { unlinkSync(df) } catch {}
+          try { unlinkSync(df) } catch { /* cleanup */ }
         }
       },
     }),

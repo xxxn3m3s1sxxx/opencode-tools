@@ -135,6 +135,10 @@ def main():
         print("Usage: rename <old_name> <new_name> [--dry-run] [--root DIR] [--lang py|cpp|ts|js|all] [--json]", file=sys.stderr)
         return 1
 
+    if old_name == new_name:
+        print(f"renamed `{old_name}` -> `{new_name}`: (no change — names are identical)", file=sys.stderr)
+        return 0
+
     if not os.path.isdir(root_dir):
         print(f"Root directory not found: {root_dir}", file=sys.stderr)
         return 1
