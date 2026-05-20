@@ -284,7 +284,7 @@ def main():
         return 0 if args and args[0] in ('--help', '-h') else 1
 
     if args[0] == '--version':
-        print(VERSION)
+        print(f"graph.py {VERSION}")
         return 0
 
     root = os.getcwd()

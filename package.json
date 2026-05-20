@@ -31,7 +31,7 @@
   ],
   "scripts": {
     "test": "python test_hashline.py && python deeper_tests.py && python regression_tests.py && python stress_test.py && python test_impact.py && python test_verify.py && python test_trace.py && python test_graph.py && python test_changelog.py && python test_search.py && python test_lint.py && python test_refactor.py",
-    "test:quick": "for %t in (hashline impact verify trace rename graph changelog search lint refactor) do python %t.py --version 2>nul || echo %t not found"
+    "test:quick": "python -c \"import subprocess,sys; tools='hashline impact verify trace rename graph changelog search lint refactor'.split(); [print(f'{t}:', 'OK' if subprocess.run([sys.executable, f'{t}.py', '--version'], capture_output=True).returncode in (0,1) else 'FAIL') for t in tools]\""
   },
   "dependencies": {
     "@opencode-ai/plugin": "^1.14.20"
