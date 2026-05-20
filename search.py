@@ -20,6 +20,7 @@ import subprocess
 import sys
 
 VERSION = "0.1.0"
+MAX_FILE_SIZE = 50 * 1024 * 1024  # skip files > 50MB
 
 try:
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -109,6 +110,12 @@ def _py_search(pattern: str, path: str, include: str | None, context: int) -> li
         for f in sorted(files):
             fpath = os.path.join(root, f)
             if include and not _match_glob(f, include):
+                continue
+            try:
+                sz = os.path.getsize(fpath)
+                if sz > MAX_FILE_SIZE:
+                    continue
+            except OSError:
                 continue
             try:
                 with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
