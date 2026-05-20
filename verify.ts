@@ -3,7 +3,7 @@ import { tool } from "@opencode-ai/plugin";
 import { spawnSync } from "child_process";
 import { detectPython, splitArgs, findToolPy } from "./utils.ts";
 
-export default (async () => {
+export default async (ctx: any) => {
   const z = tool.schema
   return {
     tool: {
@@ -46,4 +46,4 @@ Examples:
       }),
     },
   };
-}) satisfies Plugin;
+}

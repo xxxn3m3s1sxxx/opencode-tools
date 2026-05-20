@@ -101,7 +101,7 @@ async function runImpact(args: string[], cwd: string): Promise<string> {
   return proc.stdout || "";
 }
 
-export default (async () => {
+export default async (ctx: any) => {
   const z = tool.schema
   return {
     tool: {
@@ -129,7 +129,9 @@ Examples:
           try {
             const cwd = ctx?.cwd || process.cwd();
             const args = splitArgs(command.trim().replace(/^impact(?:\.py)?\s+/, ""));
-            const symbol = args.find((a: string) => !a.startsWith("-")) || args[0] || "";
+            const subcmds = new Set(["def", "definition", "refs", "references", "tests", "graph", "callees"]);
+            const nonFlag = args.filter((a: string) => !a.startsWith("-"));
+            const symbol = nonFlag.length >= 2 && subcmds.has(nonFlag[0]) ? nonFlag[1] : nonFlag[0] || "";
 
             if (!args.includes("--json")) {
               args.push("--json");
@@ -151,4 +153,4 @@ Examples:
       }),
     },
   };
-}) satisfies Plugin;
+}

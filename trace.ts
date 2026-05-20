@@ -72,7 +72,7 @@ function runPy(args: string[], cwd: string): string {
   return proc.stdout;
 }
 
-export default (async () => {
+export default async (ctx: any) => {
   const z = tool.schema
   return {
     tool: {
@@ -108,4 +108,4 @@ Examples:
       }),
     },
   };
-}) satisfies Plugin;
+}
