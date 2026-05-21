@@ -1,13 +1,13 @@
 # OpenCode Tools — Low-Latency Repository Analysis & AI Coding Assistants
 
-[![Tools](https://img.shields.io/badge/tools-13-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Tests](https://img.shields.io/badge/tests-366-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Speed](https://img.shields.io/badge/parse-5000%2B_files_in_%3C0.3s-blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Windows](https://img.shields.io/badge/windows-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
-[![Linux](https://img.shields.io/badge/linux-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
-[![macOS](https://img.shields.io/badge/macos-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
+[![Tools](https://img.shields.io/static/v1?label=tools&message=13&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Tests](https://img.shields.io/static/v1?label=tests&message=366%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Speed](https://img.shields.io/static/v1?label=parse&message=5000%2B%20files%20in%20%3C0.3s&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Python](https://img.shields.io/static/v1?label=python&message=3.10%2B&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)](LICENSE)
+[![Windows](https://img.shields.io/static/v1?label=windows&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
+[![Linux](https://img.shields.io/static/v1?label=linux&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
+[![macOS](https://img.shields.io/static/v1?label=macos&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 
 **13 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
 
