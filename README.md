@@ -2,7 +2,7 @@
 
 [![Tools](https://img.shields.io/badge/tools-13-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Tests](https://img.shields.io/badge/tests-366-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Speed](https://img.shields.io/badge/parse-5000+_files_in_&lt;0.3s-blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Speed](https://img.shields.io/badge/parse-5000%2B_files_in_%3C0.3s-blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Windows](https://img.shields.io/badge/windows-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
