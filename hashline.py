@@ -686,9 +686,9 @@ def main():
         print(f"hashline.py {VERSION}")
         sys.exit(0)
 
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 2 or sys.argv[1] in ("--help", "-h", "-?"):
         print(__doc__, file=sys.stderr)
-        sys.exit(1)
+        sys.exit(0 if sys.argv[1:] else 1)
 
     command = sys.argv[1]
     args = sys.argv[2:]

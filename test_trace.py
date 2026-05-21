@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from trace import (
+from calltrace import (
     _find_enclosing_function, _grep_occurrences,
     _find_callers, _find_call_chain,
     format_pretty, format_json, main,

@@ -17,11 +17,11 @@ refactor = "refactor:main"
 rename = "rename:main"
 verify = "verify:main"
 search = "search:main"
-trace = "trace:main"
+calltrace = "calltrace:main"
 hashline = "hashline:main"
 
 [tool.setuptools]
 py-modules = [
     "graph", "changelog", "impact", "lint", "refactor",
-    "rename", "verify", "search", "trace", "hashline",
+    "rename", "verify", "search", "trace", "calltrace", "hashline",
 ]
