@@ -127,10 +127,10 @@ foreach ($tool in $Tools) {
     $Engine = "$Project\$pyfile.py"
     if (Test-Path $Engine) {
         try {
-            $v = & python $Engine --version 2>&1
-            if ($LASTEXITCODE -eq 0) { Write-Step "$tool: $v" }
-            else { Write-Skip "$tool: verify failed" }
-        } catch { Write-Skip "$tool: python not found" }
+            $v = (& python $Engine --version 2>&1) -join ' '
+            if ($LASTEXITCODE -eq 0) { Write-Step "$($tool): $v" }
+            else { Write-Skip "$($tool): verify failed" }
+        } catch { Write-Skip "$($tool): python not found" }
     }
 }
 

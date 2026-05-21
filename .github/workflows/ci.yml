@@ -25,64 +25,59 @@ jobs:
       # ── Version checks ──
       - name: engine versions
         run: |
-          for t in hashline impact verify trace rename graph changelog search lint refactor; do
+          for t in hashline impact verify calltrace rename graph changelog search lint refactor; do
             python ${t}.py --version 2>/dev/null && echo "[OK] $t" || echo "[WARN] $t: empty output"
           done
 
-      # ── Hashline tests ──
-      - name: hashline core tests (42)
+      # ── Hashline suite ──
+      - name: hashline core tests
         run: python test_hashline.py
-      - name: hashline regression tests (22)
+      - name: hashline regression tests
         run: python regression_tests.py
-      - name: hashline stress tests (39)
+      - name: hashline stress tests (16)
         run: python stress_test.py
-      - name: hashline deep edge tests (27)
+      - name: hashline deep edge tests
         run: python deeper_tests.py
 
-      # ── Impact tests ──
-      - name: impact test suite (63)
-        run: python test_impact.py
-      - name: impact smoke test
-        run: python impact.py impact --json
-
-      # ── Verify tests ──
-      - name: verify test suite (48)
-        run: python test_verify.py
-      - name: verify smoke test
-        run: python verify.py --version
-
-      # ── Trace tests ──
-      - name: trace test suite (28)
-        run: python test_trace.py
-
-      # ── Graph tests ──
-      - name: graph test suite (20)
-        run: python test_graph.py
-
-      # ── Changelog tests ──
-      - name: changelog test suite (25)
+      # ── Tool unit tests ──
+      - name: changelog test suite
         run: python test_changelog.py
-
-      # ── Search tests ──
-      - name: search test suite (14)
-        run: python test_search.py
-
-      # ── Lint tests ──
-      - name: lint test suite (17)
+      - name: graph test suite
+        run: python test_graph.py
+      - name: impact test suite
+        run: python test_impact.py
+      - name: lint test suite
         run: python test_lint.py
-
-      # ── Refactor tests ──
-      - name: refactor test suite (21)
+      - name: refactor test suite
         run: python test_refactor.py
+      - name: search test suite
+        run: python test_search.py
+      - name: trace/calltrace test suite
+        run: python test_trace.py
+      - name: verify test suite
+        run: python test_verify.py
+
+      # ── Regression tests (19 bugs from 2026-05-21) ──
+      - name: regression tests (24)
+        run: python test_regression.py
+
+      # ── Stress tests ──
+      - name: tools stress tests (37)
+        run: python stress_tools.py
+
+      # ── Installer integration (Windows/PowerShell only) ──
+      - name: installer tests (Windows)
+        if: runner.os == 'Windows'
+        run: python test_installers.py
 
       # ── Bundle check ──
       - name: bundle check
         run: python -c "
-import json;
-p = json.load(open('package.json'));
-assert p['version'] == '0.3.0';
-print(f'[OK] package.json v{p[\"version\"]}');
-files = p.get('files', []);
-print(f'[OK] {len(files)} files in manifest');
-assert 'utils.ts' in files, 'utils.ts missing';
-"
+      import json;
+      p = json.load(open('package.json'));
+      assert p['version'] == '0.3.0';
+      print(f'[OK] package.json v{p[\"version\"]}');
+      files = p.get('files', []);
+      print(f'[OK] {len(files)} files in manifest');
+      assert 'utils.ts' in files, 'utils.ts missing';
+      "
