@@ -1,15 +1,17 @@
-# OpenCode Tools — Reliability Toolbox for AI-Assisted Development
+# OpenCode Tools — Low-Latency Repository Analysis & AI Coding Agents
 
 [![Tools](https://img.shields.io/badge/tools-13-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Tests](https://img.shields.io/badge/tests-366-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Speed](https://img.shields.io/badge/parse-5000+_files_in_&lt;0.3s-blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Windows](https://img.shields.io/badge/windows-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 [![Linux](https://img.shields.io/badge/linux-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 [![macOS](https://img.shields.io/badge/macos-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 
-A collection of OpenCode plugins that solve real problems in AI-assisted coding.
-No external Python dependencies. Zero-fuss install.
+**13 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, and more. All pure Python stdlib (no pip install beyond OpenCode itself).
+
+> ⚡ **Parses 5000+ files in under 0.3 seconds** — `graph.py` maps imports, dependents, and cycles across 50k+ line codebases in a single scan. Cross-platform (Windows/Linux/macOS), works with Python, TypeScript, C++, and C.
 
 ## Tools
 
