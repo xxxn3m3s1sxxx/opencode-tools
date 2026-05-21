@@ -105,7 +105,12 @@ def _find_ast_references(tree: ast.AST, symbol: str, source_lines: list[str]) ->
     return refs
 
 
+SUPPORTED_EXTS = {'.py', '.pyi', '.pyx'}
+
 def _find_refs_in_file(filepath: str, symbol: str) -> tuple[str | None, list[dict]]:
+    ext = os.path.splitext(filepath)[1].lower()
+    if ext not in SUPPORTED_EXTS:
+        return None, []
     content = _read_file(filepath)
     if content is None:
         return None, []
@@ -223,6 +228,9 @@ def main():
     for fp in files:
         content, refs = _find_refs_in_file(fp, old_name)
         if content is None:
+            ext = os.path.splitext(fp)[1].lower()
+            if ext not in {'.py', '.pyi', '.pyx'}:
+                print(f"  (skipped {fp}: not a Python file)", file=sys.stderr)
             continue
         if not refs:
             continue

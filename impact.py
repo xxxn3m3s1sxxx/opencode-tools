@@ -22,6 +22,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+except (AttributeError, OSError):
+    pass
+
 
 def _read_file(filepath):
     """Read file, stripping BOM and normalizing CRLF to LF."""

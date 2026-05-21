@@ -10,6 +10,8 @@ Usage:
   changelog --range <a>..<b>      Commits between refs
   changelog --file <path>         Commits touching a specific file
   changelog --since <date>        Commits since date (e.g. '2024-01-01')
+  changelog --root <dir>          Run in specific git repo directory
+  changelog [dir]                 Alias for --root (positional)
   changelog --json                Raw JSON output (for plugin)
 
 Categorizes commits by conventional-commit prefix
@@ -191,11 +193,15 @@ def main():
         elif a == '--root':
             cwd = raw[i + 1] if i + 1 < len(raw) else cwd
             i += 2
+        elif a.startswith('--root='):
+            cwd = a.split('=', 1)[1]; i += 1
         elif a.startswith('-'):
             count = int(a[1:]) if a[1:].isdigit() else count
             i += 1
         elif '..' in a:
             git_args.append(a); i += 1
+        elif os.path.isdir(a):
+            cwd = a; i += 1
         else:
             print(f"Unknown argument: {a}", file=sys.stderr); return 1
 

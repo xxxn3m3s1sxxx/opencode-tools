@@ -5,6 +5,8 @@ Usage:
   lint                            Run auto-detected lint command
   lint <tool>                     Run specific tool (ruff, eslint, tsc, mypy, pylint)
   lint <tool> <file>              Run on specific file
+  lint [dir]                      Run auto-detected lint in directory
+  lint --root <dir>               Set project root directory
   lint --json                     Structured JSON output with line:col:severity:message
 
 Auto-detects: npm run lint, npm run typecheck, ruff, eslint, tsc --noEmit, mypy, pylint
@@ -73,6 +75,8 @@ def _run_command(cmd: list[str], root: str) -> tuple[str, str, int]:
         return "", f"Command not found: {cmd[0]}", -1
     except subprocess.TimeoutExpired:
         return "", "Command timed out after 60s", -1
+    except PermissionError:
+        return "", f"Cannot execute: {cmd[0]}", -1
 
 
 def _parse_output(output: str) -> list[dict]:
@@ -129,6 +133,11 @@ def main():
             tool = a; i += 1
         else:
             file_arg = a; i += 1
+
+    # If the positional arg is a directory, treat it as root
+    if tool and os.path.isdir(tool) and file_arg is None:
+        root = tool
+        tool = None
 
     # Build command
     cmd: list[str] = []
