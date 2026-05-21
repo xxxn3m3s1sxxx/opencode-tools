@@ -307,7 +307,8 @@ def main():
             i += 1
             continue
         if a in ('-d', '--depth') and i + 1 < len(args):
-            depth = int(args[i + 1])
+            try: depth = int(args[i + 1])
+            except ValueError: print(f"Invalid --depth value: {args[i+1]}", file=sys.stderr); return 1
             i += 2
             continue
         if a == '--up':

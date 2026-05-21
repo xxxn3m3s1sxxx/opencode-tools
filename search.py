@@ -57,7 +57,6 @@ def _rg_search(pattern: str, path: str, include: str | None, context: int) -> li
 def _parse_rg_output(output: str, context: int) -> list[dict]:
     results = []
     current_group = None
-    current_lines = []
     current_lnum = 0
     current_file = ""
 
@@ -66,7 +65,6 @@ def _parse_rg_output(output: str, context: int) -> list[dict]:
             if current_group is not None:
                 results.append(current_group)
                 current_group = None
-                current_lines = []
             continue
         m = re.match(r'^(.+?):(\d+):(.+)$', line)
         if m:
@@ -83,7 +81,6 @@ def _parse_rg_output(output: str, context: int) -> list[dict]:
                 'context_after': [],
                 'is_context': False,
             }
-            current_lines = [(current_lnum, content, False)]
         elif current_group is not None:
             cm = re.match(r'^(\d+)?[-]?(.+)$', line)
             if cm:
@@ -96,6 +93,9 @@ def _parse_rg_output(output: str, context: int) -> list[dict]:
 
 def _py_search(pattern: str, path: str, include: str | None, context: int) -> list[dict]:
     results = []
+    if len(pattern) > 1000:
+        print(f"Pattern too long ({len(pattern)} chars, max 1000)", file=sys.stderr)
+        return []
     try:
         compiled = re.compile(pattern)
     except re.error as e:
@@ -103,6 +103,42 @@ def _py_search(pattern: str, path: str, include: str | None, context: int) -> li
         return []
 
     path = os.path.abspath(path)
+    if os.path.isfile(path):
+        files = [os.path.basename(path)]
+        root = os.path.dirname(path)
+        _dirs = []
+        for f in sorted(files):
+            fpath = path
+            if include and not _match_glob(f, include):
+                return results
+            try:
+                sz = os.path.getsize(fpath)
+                if sz > MAX_FILE_SIZE:
+                    return results
+            except OSError:
+                return results
+            try:
+                with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
+                    for n, line in enumerate(fh, 1):
+                        line_stripped = '' if context == 0 else line.rstrip('\n')
+                        m = compiled.search(line)
+                        if m:
+                            entry = {'file': fpath, 'line': n, 'match': m.group(), 'context': []}
+                            if context > 0:
+                                ctx_start = max(0, n - context - 1)
+                                ctx_lines = []
+                                try:
+                                    with open(fpath, 'r', encoding='utf-8', errors='replace') as cf:
+                                        for cn, cl in enumerate(cf, 1):
+                                            if ctx_start < cn <= n + context:
+                                                ctx_lines.append({'line': cn, 'content': cl.rstrip('\n')})
+                                except OSError:
+                                    pass
+                                entry['context'] = ctx_lines
+                            results.append(entry)
+            except (OSError, re.error):
+                pass
+        return results
     for root, _dirs, files in os.walk(path):
         # Skip .git, __pycache__, node_modules
         if '.git' in root or '__pycache__' in root or 'node_modules' in root:
@@ -122,7 +158,7 @@ def _py_search(pattern: str, path: str, include: str | None, context: int) -> li
                     lines = fh.readlines()
             except (OSError, UnicodeDecodeError):
                 continue
-            relpath = os.path.relpath(fpath, os.path.dirname(path)) if os.path.isdir(path) else fpath
+            relpath = os.path.relpath(fpath, path) if os.path.isdir(path) else fpath
             for i, line in enumerate(lines, 1):
                 if compiled.search(line.rstrip('\n')):
                     entry = {
@@ -167,9 +203,11 @@ def main():
         if a == '--json':
             use_json = True; i += 1
         elif a.startswith('--context='):
-            context = int(a.split('=', 1)[1]); i += 1
+            try: context = int(a.split('=', 1)[1]); i += 1
+            except ValueError: print(f"Invalid --context value: {a.split('=',1)[1]}", file=sys.stderr); return 1
         elif a == '--context' and i + 1 < len(raw):
-            context = int(raw[i + 1]); i += 2
+            try: context = int(raw[i + 1]); i += 2
+            except ValueError: print(f"Invalid --context value: {raw[i+1]}", file=sys.stderr); return 1
         elif a.startswith('--include='):
             include = a.split('=', 1)[1]; i += 1
         elif a == '--include' and i + 1 < len(raw):

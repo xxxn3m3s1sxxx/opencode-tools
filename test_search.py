@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from search import main, _has_rg, _match_glob
+from search import main, _match_glob
 
 
 TEST_FILES = {

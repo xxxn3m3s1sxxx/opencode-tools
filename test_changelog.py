@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from changelog import _parse_line, format_log, CATEGORIES
+from changelog import _parse_line, format_log
 
 
 class TestParseLine(unittest.TestCase):

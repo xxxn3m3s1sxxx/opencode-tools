@@ -179,7 +179,8 @@ def main():
         if a == '--json':
             use_json = True; i += 1
         elif a == '-n' and i + 1 < len(raw):
-            count = int(raw[i + 1]); i += 2
+            try: count = int(raw[i + 1]); i += 2
+            except ValueError: print(f"Invalid count: {raw[i+1]}", file=sys.stderr); return 1
         elif a == '--from' and i + 1 < len(raw):
             git_args.extend([f'{raw[i+1]}..HEAD']); i += 2
         elif a == '--to' and i + 1 < len(raw):

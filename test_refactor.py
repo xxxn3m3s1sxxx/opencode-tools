@@ -8,8 +8,8 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from refactor import (
-    _walk_files, _read_file, _find_ast_references,
-    _find_refs_in_file, _apply_rename, format_results, main,
+    _walk_files, _find_ast_references,
+    _find_refs_in_file, _apply_rename, main,
 )
 
 

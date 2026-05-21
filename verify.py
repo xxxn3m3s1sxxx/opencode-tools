@@ -21,7 +21,6 @@ Exit code:
 """
 import hashlib
 import json
-import os
 import re
 import subprocess
 import sys
@@ -254,7 +253,6 @@ def format_pretty(result):
         old_s = '[OK]' if result['old_removed'] else '[FAIL]'
         new_s = '[OK]' if result['new_present'] else '[FAIL]'
         old_t = result.get('old_text', '')
-        new_t = result.get('new_text', '')
         lines.append(f'    old removed:    {old_s}  ("{old_t[:50]}" was at line {result["old_line"]}, {result["old_count"]}x)' if not result['old_removed'] else f'    old removed:    {old_s}')
         lines.append(f'    new present:    {new_s}  (line {result["new_line"]}, {result["new_count"]}x)' if result['new_present'] else f'    new present:    {new_s}')
         if result['status'] == 'ok':
@@ -300,7 +298,6 @@ def main():
     contains_mode = False
     diff_mode = False
     diff_staged = False
-    target_line = None
 
     clean_args = []
     old_text = None
@@ -321,7 +318,8 @@ def main():
             i += 1
             continue
         if a == '--context' and i + 1 < len(args):
-            context_lines = int(args[i + 1])
+            try: context_lines = int(args[i + 1])
+            except ValueError: print(f"Invalid --context value: {args[i+1]}", file=sys.stderr); return 1
             i += 2
             continue
         if a == '--not':
@@ -333,7 +331,7 @@ def main():
             i += 1
             continue
         if a == '--line' and i + 1 < len(args):
-            target_line = int(args[i + 1])
+            line_no = int(args[i + 1])
             i += 2
             continue
         if a == '--old' and i + 1 < len(args):

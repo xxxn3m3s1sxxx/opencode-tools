@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from lint import _parse_output, _detect_cmd, main, PARSERS
+from lint import _parse_output, _detect_cmd, main
 
 
 def _run(args):

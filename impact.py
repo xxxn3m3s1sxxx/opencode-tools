@@ -285,7 +285,8 @@ def _ts_find_definitions(filepath, symbol):
                 if val:
                     name = val
                     break
-            if not name or name == symbol:
+            if not name or name != symbol:
+                continue
                 line_no = clean[:m.start()].count('\n') + 1
                 context = lines[line_no - 1][:120] if line_no <= len(lines) else ''
                 matches.append({
@@ -507,10 +508,9 @@ class ImpactAnalyzer:
                             break
                 elif isinstance(node, (ast.ImportFrom, ast.Import)):
                     for alias in node.names:
-                        name = alias.asname or alias.name.split('.')[0]
-                        kind = 'import'
-                        line = node.lineno
-                        break
+                        aname = alias.asname or alias.name.split('.')[0]
+                        matches.append({'name': aname, 'type': 'import', 'line': node.lineno})
+                    continue
                 if name:
                     matches.append({'name': name, 'type': kind, 'line': line})
             return sorted(matches, key=lambda x: x['line'])
@@ -523,7 +523,7 @@ class ImpactAnalyzer:
             for pattern, kind in CPP_DEF_PATTERNS:
                 for m in re.finditer(pattern, source):
                     name = m.group(1) if kind != 'method' else m.group(2)
-                    line_no = clean[:m.start()].count('\n') + 1
+                    line_no = source[:m.start()].count('\n') + 1
                     matches.append({'name': name, 'type': kind, 'line': line_no})
             seen = set()
             unique = []
@@ -631,8 +631,9 @@ class ImpactAnalyzer:
         line = lines[line_no - 1]
 
         # 1. Function call pattern: identifier(args)
+        _KEYWORDS = frozenset({'if', 'for', 'while', 'return', 'switch', 'catch', 'elif', 'except', 'with', 'yield', 'raise', 'del', 'assert', 'try', 'typeof', 'instanceof', 'void', 'delete'})
         call_match = re.search(r'([A-Za-z_]\w*)\s*\(', line)
-        if call_match:
+        if call_match and call_match.group(1) not in _KEYWORDS:
             return call_match.group(1)
 
         # 2. Class/function def pattern: def/class/function/interface/type identifier
@@ -801,7 +802,6 @@ def main():
 
     analyzer = ImpactAnalyzer(root_dir)
     symbol = None
-    file_line = None
 
     # Parse command
     if cmd in ('def', 'definition'):
@@ -890,7 +890,6 @@ def main():
                     if os.path.exists(joined):
                         resolved_file = joined
                 if os.path.exists(resolved_file):
-                    file_line = (resolved_file, int(maybe_line))
                     inferred = analyzer.infer_symbol(resolved_file, int(maybe_line))
                     if inferred:
                         symbol = inferred

@@ -23,5 +23,5 @@ hashline = "hashline:main"
 [tool.setuptools]
 py-modules = [
     "graph", "changelog", "impact", "lint", "refactor",
-    "rename", "verify", "search", "trace", "calltrace", "hashline",
+    "rename", "verify", "search", "calltrace", "hashline",
 ]

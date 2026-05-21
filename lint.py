@@ -196,7 +196,7 @@ def main():
             # Default: try ruff, fallback to eslint, tsc
             for candidate in [['ruff', 'check'], [_NPX, 'eslint', '.'], [_NPX, 'tsc', '--noEmit']]:
                 try:
-                    r = subprocess.run(candidate + ['--version' if candidate[0] != 'ruff' else '--version'],
+                    r = subprocess.run([candidate[0], '--version'],
                                        capture_output=True, timeout=5, cwd=root)
                     if r.returncode == 0:
                         cmd = candidate
@@ -207,7 +207,10 @@ def main():
                 print("No lint tool detected. Try: lint ruff, lint eslint, lint tsc", file=sys.stderr)
                 return 1
     else:
-        # Unknown tool name - try running it directly
+        # Unknown tool name — reject if it looks like a path (injection guard)
+        if os.sep in tool or (os.altsep and os.altsep in tool):
+            print(f"Invalid tool name: {tool}", file=sys.stderr)
+            return 1
         cmd = [tool]
 
     if file_arg:

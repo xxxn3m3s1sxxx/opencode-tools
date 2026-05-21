@@ -98,20 +98,22 @@ foreach ($tool in $Tools) {
 
 # --- Install .py to plugin dir ---
 foreach ($tool in $Tools) {
-    $PluginPy = "$PluginDir\$tool.py"
+    $pyfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
+    $PluginPy = "$PluginDir\$pyfile.py"
     if (-not (Test-Path $PluginPy)) {
-        Install-File "$tool.py" "$PluginPy" "$tool.py (plugin)"
+        Install-File "$pyfile.py" "$PluginPy" "$pyfile.py (plugin)"
     }
 }
 
 # --- Install engines (project root) ---
 foreach ($tool in $Tools) {
-    $EngineDest = "$Project\$tool.py"
+    $pyfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
+    $EngineDest = "$Project\$pyfile.py"
     if (Test-Path $EngineDest) {
         Write-Skip "  [$tool] engine -> $EngineDest (exists)"
     } else {
-        Write-Host "  [$tool] engine..."
-        Install-File "$tool.py" "$EngineDest" "$tool.py"
+        Write-Host "  [$tool] engine (as $pyfile.py)..."
+        Install-File "$pyfile.py" "$EngineDest" "$pyfile.py"
         if (-not (Test-Path $EngineDest)) {
             Write-Err "  [$tool] engine INSTALL FAILED"
         }
@@ -121,7 +123,8 @@ foreach ($tool in $Tools) {
 # --- Verify ---
 Write-Host ""
 foreach ($tool in $Tools) {
-    $Engine = "$Project\$tool.py"
+    $pyfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
+    $Engine = "$Project\$pyfile.py"
     if (Test-Path $Engine) {
         try {
             $v = & python $Engine --version 2>&1
@@ -140,6 +143,7 @@ if (Test-Path "$PSScriptRoot\pyproject.toml") {
 Write-Host "  Installed: $($Tools -join ', ')`n"
 Write-Host "  Test:"
 foreach ($tool in $Tools) {
-    Write-Host "    python $Project\$tool.py --version"
+    $pyfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
+    Write-Host "    python $Project\$pyfile.py --version"
 }
 Write-Host ""

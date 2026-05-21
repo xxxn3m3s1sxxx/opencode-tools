@@ -67,11 +67,11 @@ for %%t in (%TOOLS%) do (
             echo     SKIP (not found)
         )
     ) else (
-        powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.ts' -OutFile '%OPCODE_DIR%\plugins\%%t.ts' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
+        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/%%t.ts' -OutFile '%OPCODE_DIR%\plugins\%%t.ts' -UseBasicParsing" >nul
         if exist "%OPCODE_DIR%\plugins\%%t.ts" (
             echo     OK
         ) else (
-            echo     SKIP (download failed)
+            echo     FAIL (%%t.ts — network or server error)
         )
     )
 )
@@ -84,7 +84,7 @@ for %%t in (%TOOLS%) do (
         if "%LOCAL%"=="1" (
             if exist "%~dp0%%t.ts" copy /Y "%~dp0%%t.ts" "%PROJECT%\.opencode\plugins\%%t.ts" >nul
         ) else (
-            powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.ts' -OutFile '%PROJECT%\.opencode\plugins\%%t.ts' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
+            powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/%%t.ts' -OutFile '%PROJECT%\.opencode\plugins\%%t.ts' -UseBasicParsing" >nul
         )
     )
 )
@@ -92,11 +92,13 @@ for %%t in (%TOOLS%) do (
 REM --- Install .py to plugins dir ---
 for %%t in (%TOOLS%) do (
     if not "%%t"=="utils" (
-        if not exist "%OPCODE_DIR%\plugins\%%t.py" (
+        set "PYFILE=%%t"
+        if "%%t"=="trace" set "PYFILE=calltrace"
+        if not exist "%OPCODE_DIR%\plugins\!PYFILE!.py" (
             if "%LOCAL%"=="1" (
-                if exist "%~dp0%%t.py" copy /Y "%~dp0%%t.py" "%OPCODE_DIR%\plugins\%%t.py" >nul
+                if exist "%~dp0!PYFILE!.py" copy /Y "%~dp0!PYFILE!.py" "%OPCODE_DIR%\plugins\!PYFILE!.py" >nul
             ) else (
-                powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.py' -OutFile '%OPCODE_DIR%\plugins\%%t.py' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
+                powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/!PYFILE!.py' -OutFile '%OPCODE_DIR%\plugins\!PYFILE!.py' -UseBasicParsing" >nul
             )
         )
     )
@@ -105,21 +107,23 @@ for %%t in (%TOOLS%) do (
 REM --- Install engines (project root) ---
 for %%t in (%TOOLS%) do (
     if not "%%t"=="utils" (
-        if not exist "%PROJECT%\%%t.py" (
-            echo   [%%t] engine...
+        set "PYFILE=%%t"
+        if "%%t"=="trace" set "PYFILE=calltrace"
+        if not exist "%PROJECT%\!PYFILE!.py" (
+            echo   [%%t] engine (as !PYFILE!.py)...
             if "%LOCAL%"=="1" (
-                if exist "%~dp0%%t.py" (
-                    copy /Y "%~dp0%%t.py" "%PROJECT%\%%t.py" >nul
+                if exist "%~dp0!PYFILE!.py" (
+                    copy /Y "%~dp0!PYFILE!.py" "%PROJECT%\!PYFILE!.py" >nul
                     echo     OK (local)
                 ) else (
                     echo     SKIP (not found)
                 )
             ) else (
-                powershell -Command "Invoke-WebRequest -Uri '%REPO_BASE%/%%t.py' -OutFile '%PROJECT%\%%t.py' -UseBasicParsing -ErrorAction SilentlyContinue" >nul 2>&1
-                if exist "%PROJECT%\%%t.py" (
+                powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/!PYFILE!.py' -OutFile '%PROJECT%\!PYFILE!.py' -UseBasicParsing" >nul
+                if exist "%PROJECT%\!PYFILE!.py" (
                     echo     OK
                 ) else (
-                    echo     SKIP (download failed)
+                    echo     FAIL (!PYFILE!.py — network or server error)
                 )
             )
         ) else (
@@ -131,10 +135,12 @@ for %%t in (%TOOLS%) do (
 REM --- Verify ---
 echo.
 for %%t in (%TOOLS%) do (
-    if exist "%PROJECT%\%%t.py" (
-        python "%PROJECT%\%%t.py" --version >nul 2>&1
+    set "PYFILE=%%t"
+    if "%%t"=="trace" set "PYFILE=calltrace"
+    if exist "%PROJECT%\!PYFILE!.py" (
+        python "%PROJECT%\!PYFILE!.py" --version >nul 2>&1
         if !ERRORLEVEL! equ 0 (
-            for /f "tokens=*" %%v in ('python "%PROJECT%\%%t.py" --version 2^>^&1') do echo   %%t: %%v
+            for /f "tokens=*" %%v in ('python "%PROJECT%\!PYFILE!.py" --version 2^>^&1') do echo   %%t: %%v
         )
     )
 )

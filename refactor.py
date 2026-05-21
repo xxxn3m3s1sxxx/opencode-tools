@@ -15,7 +15,6 @@ import json
 import os
 import re
 import sys
-from pathlib import Path
 
 VERSION = "0.1.0"
 
@@ -190,8 +189,14 @@ def _strip_ts_content(content: str) -> str:
                 result[i] = ' '
                 i += 1
             continue
-        # Regex literal (starts with /, not preceded by word char)
-        if content[i] == '/' and (i == 0 or not content[i-1].isalnum()):
+        # Regex literal (starts with /, not preceded by expression-ending char)
+        if content[i] == '/':
+            j = i - 1
+            while j >= 0 and content[j] in ' \t':
+                j -= 1
+            if j >= 0 and content[j] not in '([{,:;!?&|=+-~%*\n\r':
+                i += 1
+                continue
             result[i] = ' '
             i += 1
             while i < len(content) and content[i] != '/':

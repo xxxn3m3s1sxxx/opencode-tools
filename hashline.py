@@ -28,7 +28,6 @@ import hashlib
 import itertools
 import re
 import sys
-import os
 
 import string
 from pathlib import Path
@@ -140,6 +139,8 @@ class HashlineParseError(HashlineError):
 
 def parse_anchor(raw: str) -> tuple[int, str]:
     """Parse '42sr' -> (42, 'sr')"""
+    if raw != raw.lower():
+        print(f"Warning: anchor {raw!r} has uppercase chars — lowercased automatically", file=sys.stderr)
     m = re.match(r"^(\d+)([a-z]{2})$", raw.lower())
     if not m:
         raise HashlineParseError(
@@ -582,7 +583,7 @@ def cmd_replace(args: list[str]):
     parser.add_argument("--stdin-new", action="store_true", help="Read new text from stdin")
     parser.add_argument("--file-old", type=str, default=None, help="Read old text from file")
     parser.add_argument("--file-new", type=str, default=None, help="Read new text from file")
-    parsed_args = parser.parse_args(args)
+    parsed_args, _ = parser.parse_known_args(args)
 
     file_path = Path(parsed_args.file)
     if not file_path.exists():

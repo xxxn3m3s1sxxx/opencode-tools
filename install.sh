@@ -51,7 +51,7 @@ for tool in $TOOLS; do
     echo "  [plugin] $tool -> $dst (local)"
   else
     echo "  [plugin] $tool -> downloading..."
-    curl -fsSL "$REPO/$src" -o "$dst" 2>/dev/null || echo "  [WARN] $tool download failed"
+    curl -fsSL "$REPO/$src" -o "$dst" || echo "  [WARN] $tool download failed"
   fi
 done
 
@@ -67,7 +67,7 @@ for tool in $TOOLS; do
     elif [ -f "$src" ]; then
       cp "$src" "$dst"
     else
-      curl -fsSL "$REPO/$src" -o "$dst" 2>/dev/null || true
+      curl -fsSL "$REPO/$src" -o "$dst" || echo "  [WARN] $tool download failed"
     fi
   fi
 done
@@ -75,21 +75,25 @@ done
 # Install .py to plugin dir (for plugin system)
 for tool in $TOOLS; do
   [ "$tool" = "utils" ] && continue
-  src="${tool}.py"
+  pyfile="$tool"
+  [ "$tool" = "trace" ] && pyfile="calltrace"
+  src="${pyfile}.py"
   dst="$PLUGIN_DIR/$src"
   if $LOCAL && [ -f "$SCRIPT_DIR/$src" ]; then
     cp "$SCRIPT_DIR/$src" "$dst"
   elif [ -f "$src" ]; then
     cp "$src" "$dst"
   elif [ ! -f "$dst" ]; then
-    curl -fsSL "$REPO/$src" -o "$dst" 2>/dev/null || true
+    curl -fsSL "$REPO/$src" -o "$dst" || echo "  [WARN] $tool download failed"
   fi
 done
 
 # Install engines (.py, skip utils.ts which has no .py)
 for tool in $TOOLS; do
   [ "$tool" = "utils" ] && continue
-  src="${tool}.py"
+  pyfile="$tool"
+  [ "$tool" = "trace" ] && pyfile="calltrace"
+  src="${pyfile}.py"
   dst="$PROJECT/$src"
   if $LOCAL && [ -f "$SCRIPT_DIR/$src" ]; then
     cp "$SCRIPT_DIR/$src" "$dst"
@@ -99,7 +103,7 @@ for tool in $TOOLS; do
     echo "  [engine] $tool -> $dst (local)"
   elif [ ! -f "$dst" ]; then
     echo "  [engine] $tool -> downloading..."
-    curl -fsSL "$REPO/$src" -o "$dst" 2>/dev/null || echo "  [WARN] $tool download failed"
+    curl -fsSL "$REPO/$src" -o "$dst" || echo "  [WARN] $tool download failed"
   else
     echo "  [engine] $tool -> $dst (exists)"
   fi
@@ -116,7 +120,9 @@ fi
 echo ""
 for tool in $TOOLS; do
   [ "$tool" = "utils" ] && continue
-  ver=$(python3 "$PROJECT/${tool}.py" --version 2>/dev/null || python "$PROJECT/${tool}.py" --version 2>/dev/null || true)
+  pyfile="$tool"
+  [ "$tool" = "trace" ] && pyfile="calltrace"
+  ver=$(python3 "$PROJECT/${pyfile}.py" --version 2>/dev/null || python "$PROJECT/${pyfile}.py" --version 2>/dev/null || true)
   if [ -n "$ver" ]; then
     echo "  $ver"
   else

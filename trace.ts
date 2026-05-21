@@ -66,7 +66,7 @@ function formatOutput(symbol: string, data: TraceResult): string {
 
 function runPy(args: string[], cwd: string): string {
   if (!args.includes("--json")) args.push("--json");
-  const proc = spawnSync(detectPython(), [findToolPy("trace.py", cwd), ...args], { cwd, encoding: "utf-8", timeout: 30000 });
+  const proc = spawnSync(detectPython(), [findToolPy("calltrace.py", cwd), ...args], { cwd, encoding: "utf-8", timeout: 30000 });
   if (proc.error) throw proc.error;
   if (proc.status !== 0) throw new Error(proc.stderr?.trim() || proc.stdout?.trim() || `exit ${proc.status}`);
   return proc.stdout;

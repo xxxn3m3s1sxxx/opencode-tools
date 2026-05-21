@@ -12,11 +12,9 @@ Returns 0 if all tests pass, 1 on failure (CI-friendly).
 import hashlib
 import itertools
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
-import time
 
 HASHLINE_PY = os.path.join(os.path.dirname(__file__), "hashline.py")
 PASS = 0

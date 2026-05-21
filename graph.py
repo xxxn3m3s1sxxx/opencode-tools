@@ -141,7 +141,7 @@ def _resolve_import_path(imp: str, filepath: str, root: str) -> str | None:
     for c in candidates:
         if os.path.exists(c):
             return os.path.relpath(c, root)
-    return imp
+    return None
 
 
 def _parse_imports(source: str, ext: str) -> list[str]:
@@ -199,22 +199,22 @@ def find_deps(graph: dict, file_rel: str) -> dict:
 
 def find_tree(graph: dict, file_rel: str, max_depth: int = 5) -> list:
     edges = graph['edges']
-    visited = set()
     result = []
 
-    def _walk(node: str, depth: int, chain: list[str]):
+    def _walk(node: str, depth: int, chain: list[str], on_path: set):
         if depth > max_depth:
             return
-        if node in visited:
+        if node in on_path:
             result.append({'file': node, 'depth': depth, 'cycle': True, 'chain': chain + [node]})
             return
-        visited.add(node)
+        on_path.add(node)
         deps = edges.get(node, [])
         result.append({'file': node, 'depth': depth, 'deps': deps})
         for d in deps:
-            _walk(d, depth + 1, chain + [node])
+            _walk(d, depth + 1, chain + [node], on_path)
+        on_path.discard(node)
 
-    _walk(file_rel, 0, [])
+    _walk(file_rel, 0, [], set())
     return result
 
 
@@ -389,7 +389,6 @@ def main():
             print(json.dumps({'file': file_rel, 'tree': tree}, indent=2))
         else:
             print(f"Dependency tree for {file_rel}:")
-            seen = set()
             for entry in tree:
                 indent = "  " * entry['depth']
                 marker = " [CYCLE]" if entry.get('cycle') else ""
