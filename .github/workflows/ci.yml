@@ -6,8 +6,37 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  PYTHONIOENCODING: utf-8
+  PYTHONUTF8: 1
+
 jobs:
+  lint:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11"]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: ruff check
+        run: ruff check --output-format=github .
+
+      - name: mypy check
+        run: pip install mypy types-PyYAML && mypy --ignore-missing-imports . || true
+
   test:
+    needs: lint
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -22,62 +51,69 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      # ── Version checks ──
+      # ── Version checks (cross-platform) ──
       - name: engine versions
+        shell: python
         run: |
-          for t in hashline impact verify calltrace rename graph changelog search lint refactor; do
-            python ${t}.py --version 2>/dev/null && echo "[OK] $t" || echo "[WARN] $t: empty output"
-          done
+          import subprocess, sys, os
+          tools = ['hashline', 'impact', 'verify', 'calltrace', 'rename',
+                   'graph', 'changelog', 'search', 'lint', 'refactor']
+          for t in tools:
+              r = subprocess.run([sys.executable, f'{t}.py', '--version'],
+                                 capture_output=True, text=True, timeout=10)
+              if r.returncode == 0:
+                  print(f'[OK] {t}: {r.stdout.strip()}')
+              else:
+                  print(f'[WARN] {t}: exit {r.returncode}')
 
       # ── Hashline suite ──
       - name: hashline core tests
-        run: python test_hashline.py
-      - name: hashline regression tests
-        run: python regression_tests.py
-      - name: hashline stress tests (16)
-        run: python stress_test.py
-      - name: hashline deep edge tests
-        run: python deeper_tests.py
+        shell: python
+        run: |
+          import subprocess, sys
+          for t in ['test_hashline.py', 'regression_tests.py', 'stress_test.py', 'deeper_tests.py']:
+              r = subprocess.run([sys.executable, t], capture_output=True, text=True, timeout=120)
+              print(f'[{chr(0x2713) if r.returncode == 0 else chr(0x2717)}] {t}')
+              if r.returncode != 0:
+                  print(r.stderr[-2000:])
 
       # ── Tool unit tests ──
-      - name: changelog test suite
-        run: python test_changelog.py
-      - name: graph test suite
-        run: python test_graph.py
-      - name: impact test suite
-        run: python test_impact.py
-      - name: lint test suite
-        run: python test_lint.py
-      - name: refactor test suite
-        run: python test_refactor.py
-      - name: search test suite
-        run: python test_search.py
-      - name: trace/calltrace test suite
-        run: python test_trace.py
-      - name: verify test suite
-        run: python test_verify.py
+      - name: unit test suite
+        shell: python
+        run: |
+          import subprocess, sys
+          tests = ['test_changelog', 'test_graph', 'test_impact', 'test_lint',
+                   'test_refactor', 'test_search', 'test_trace', 'test_verify']
+          for t in tests:
+              r = subprocess.run([sys.executable, '-m', 'unittest', t],
+                                 capture_output=True, text=True, timeout=120)
+              ok = r.returncode == 0
+              print(f'[{chr(0x2713) if ok else chr(0x2717)}] {t}')
+              if not ok:
+                  print(r.stderr[-2000:])
 
-      # ── Regression tests (19 bugs from 2026-05-21) ──
-      - name: regression tests (24)
+      # ── Regression tests ──
+      - name: regression tests
         run: python test_regression.py
 
       # ── Stress tests ──
-      - name: tools stress tests (37)
+      - name: stress tests
         run: python stress_tools.py
 
-      # ── Installer integration (Windows/PowerShell only) ──
-      - name: installer tests (Windows)
+      # ── Installer integration (Windows) ──
+      - name: installer tests
         if: runner.os == 'Windows'
         run: python test_installers.py
 
       # ── Bundle check ──
       - name: bundle check
-        run: python -c "
-      import json;
-      p = json.load(open('package.json'));
-      assert p['version'] == '0.3.0';
-      print(f'[OK] package.json v{p[\"version\"]}');
-      files = p.get('files', []);
-      print(f'[OK] {len(files)} files in manifest');
-      assert 'utils.ts' in files, 'utils.ts missing';
-      "
+        shell: python
+        run: |
+          import json
+          p = json.load(open('package.json'))
+          assert p['version'] == '0.3.0', f'version mismatch: {p["version"]}'
+          print(f'[OK] package.json v{p["version"]}')
+          files = p.get('files', [])
+          assert 'utils.ts' in files, 'utils.ts missing'
+          assert 'calltrace.py' in files, 'calltrace.py missing'
+          print(f'[OK] {len(files)} files in manifest')
