@@ -5,7 +5,11 @@ Tests things that could go wrong: huge inputs, encoding issues,
 pathological code patterns, concurrency trouble, and weird OS edge cases.
 """
 
-import json, os, subprocess, sys, tempfile
+import json
+import os
+import subprocess
+import sys
+import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -182,7 +186,7 @@ def stress_search_10k_matches():
         check('search 10k matches returns 0', r.returncode == 0)
         # Count matches in stdout
         n = r.stdout.count('MATCH_')
-        check(f'search 10k matches >= 9900', n >= 9900, f'got {n}')
+        check('search 10k matches >= 9900', n >= 9900, f'got {n}')
     finally:
         os.unlink(tmp)
 
@@ -311,7 +315,7 @@ def stress_changelog_zero_n():
 
 # ====================================================================
 def main():
-    print(f'\n  Stress & Edge-Case Tests — all tools')
+    print('\n  Stress & Edge-Case Tests — all tools')
     print(f'  {"=" * 42}')
     tests = [
         stress_impact_huge_file,

@@ -272,4 +272,4 @@ if failed:
     print(f"\n  [FAIL] {failed} FAILURES")
     sys.exit(1)
 else:
-    print(f"  [PASS] ALL PASS")
+    print("  [PASS] ALL PASS")

@@ -231,7 +231,7 @@ def test_insert_before():
     """Insert before anchor."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
         f.write("first\nlast\n")
-        target = p = f.name
+        target = f.name
     r = run_hl(["read", target])
     lines = r.stdout.strip().split("\n")
     parts = lines[0].split("|")
@@ -257,7 +257,7 @@ def test_delete_line():
     """Delete a line."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
         f.write("keep A\ndelete me\nkeep B\n")
-        target = p = f.name
+        target = f.name
     r = run_hl(["read", target])
     lines = r.stdout.strip().split("\n")
     parts = lines[1].split("|")
@@ -363,7 +363,7 @@ def test_diff_cmd():
     """Diff command produces valid output."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
         f.write("same\nsame\n")
-        target = p = f.name
+        target = f.name
     r = run_hl(["read", target])
     lines = r.stdout.strip().split("\n")
     parts = lines[0].split("|")
@@ -411,12 +411,6 @@ def demo_edit_fails_hashline_succeeds():
         # edit() would fail because oldString doesn't match exactly
         r = run_hl(["replace", p, model_guess, "replaced"])
         # hashline succeeds via stripped text matching
-        if file_content.rstrip() == model_guess.rstrip():
-            expected = r.returncode == 0
-        else:
-            # If rstrip versions differ too, even hashline can't save it
-            expected = r.returncode == 0 if file_content.rstrip() == model_guess.rstrip() else r.returncode != 0
-        
         mark = "[OK]" if r.returncode == 0 else "[FAIL]"
         detail = f"file={file_content!r} model={model_guess!r} -> exit={r.returncode}"
         log_detail = f"  {mark} {name}: {detail}\n    stdout: {r.stdout.strip()}\n"

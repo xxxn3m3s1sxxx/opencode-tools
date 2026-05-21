@@ -261,7 +261,7 @@ def _find_ts_refs(content: str, symbol: str) -> list[dict]:
 
     # Deduplicate by position
     seen = set()
-    return [r for r in refs if not (r['lineno'], r['col_offset']) in seen and not seen.add((r['lineno'], r['col_offset']))]
+    return [r for r in refs if (r['lineno'], r['col_offset']) not in seen and not seen.add((r['lineno'], r['col_offset']))]
 
 
 def _find_refs_in_file(filepath: str, symbol: str) -> tuple[str | None, list[dict]]:

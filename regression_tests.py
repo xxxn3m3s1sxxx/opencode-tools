@@ -130,7 +130,7 @@ with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding
 r = hl("read", p)
 check("pipeline read", r.returncode == 0, r.stderr[:200])
 lines = r.stdout.strip().split("\n")
-hashes = [l.split("|")[0] for l in lines if "|" in l]
+hashes = [line.split("|")[0] for line in lines if "|" in line]
 # read shows 4 lines (3 content + 1 empty) but empty line hash isn't needed
 check("pipeline hashes >= 2", len(hashes) >= 2, f"got {len(hashes)}")
 # Build diff from hashes (first two content lines)

@@ -243,7 +243,7 @@ def format_viz(symbol, callers, chain, root, depth):
         if chain:
             lines.append('')
 
-        lines.append(f'  [callers]')
+        lines.append('  [callers]')
         caller_list = unique.get(symbol, [])
         for i, c in enumerate(caller_list):
             rel = os.path.relpath(c['file'], root)

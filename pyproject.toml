@@ -25,3 +25,9 @@ py-modules = [
     "graph", "changelog", "impact", "lint", "refactor",
     "rename", "verify", "search", "calltrace", "hashline",
 ]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+ignore = ["E701", "E702", "E402", "F541"]

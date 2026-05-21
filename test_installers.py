@@ -5,7 +5,10 @@ Tests local-mode installation (no network) in isolated temp dirs.
 Verifies file placement, trace->calltrace mapping, and config dir detection.
 """
 
-import os, subprocess, sys, tempfile
+import os
+import subprocess
+import sys
+import tempfile
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 try:
@@ -76,7 +79,7 @@ def test_bat_local_mode():
         with open(wrapper, 'w') as f:
             f.write(f'@echo off\ncall "{os.path.join(TOOLS_DIR, "install.bat")}" %*\n')
 
-        p = subprocess.run(
+        subprocess.run(
             [wrapper, proj_dir, '/local'],
             capture_output=True, text=True, env=env,
             cwd=TOOLS_DIR, encoding='utf-8', errors='replace',
@@ -100,7 +103,7 @@ def test_bat_local_copies_plugins():
         wrapper = os.path.join(tmp, '_run.bat')
         with open(wrapper, 'w') as f:
             f.write(f'@echo off\ncall "{os.path.join(TOOLS_DIR, "install.bat")}" %*\n')
-            f.write(f'echo EXIT_CODE=%ERRORLEVEL%\n')
+            f.write('echo EXIT_CODE=%ERRORLEVEL%\n')
 
         subprocess.run(
             [wrapper, proj_dir, '/local'],
@@ -114,7 +117,7 @@ def test_bat_local_copies_plugins():
                   os.path.exists(os.path.join(opcode_dir, 'plugins', fn)))
 
         # Verify trace->calltrace mapping
-        check(f'bat local calltrace.py not trace.py',
+        check('bat local calltrace.py not trace.py',
               os.path.exists(os.path.join(opcode_dir, 'plugins', 'calltrace.py')) and
               not os.path.exists(os.path.join(opcode_dir, 'plugins', 'trace.py')))
 
@@ -150,9 +153,9 @@ def test_ps1_offline_mode():
                   os.path.exists(os.path.join(opcode_dir, 'plugins', fn)),
                   p.stderr[:200])
 
-        check(f'ps1 offline calltrace.py exists',
+        check('ps1 offline calltrace.py exists',
               os.path.exists(os.path.join(opcode_dir, 'plugins', 'calltrace.py')))
-        check(f'ps1 offline no trace.py',
+        check('ps1 offline no trace.py',
               not os.path.exists(os.path.join(opcode_dir, 'plugins', 'trace.py')))
 
         # engine files
@@ -253,7 +256,7 @@ def test_bat_skip_existing_engine():
 
 # ====================================================================
 def main():
-    print(f'\n  Installer Integration Tests')
+    print('\n  Installer Integration Tests')
     print(f'  {"=" * 32}')
     tests = [
         test_bat_local_mode,

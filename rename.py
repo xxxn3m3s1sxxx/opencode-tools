@@ -189,7 +189,7 @@ def main():
             print("  (no occurrences found)")
             return 0
         for r in results:
-            lines_str = ','.join(str(l) for l in r['occurrences'][:10])
+            lines_str = ','.join(str(line) for line in r['occurrences'][:10])
             if len(r['occurrences']) > 10:
                 lines_str += f",...({r['count']} total)"
             rel = os.path.relpath(r['file'], root_dir)

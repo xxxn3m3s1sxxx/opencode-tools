@@ -695,7 +695,7 @@ def format_pretty(symbol, defs, refs, tests, callees, root):
     # References (excluding definitions)
     def_lines = {(d['file'], d['line']) for d in defs}
     refs_only = [r for r in refs if (r['file'], r['line']) not in def_lines]
-    lines.append(f"")
+    lines.append("")
     lines.append(f"  [ref] {_fmt_line_count(len(refs_only))}")
     for r in refs_only[:20]:
         rel = os.path.relpath(r['file'], root)
@@ -706,7 +706,7 @@ def format_pretty(symbol, defs, refs, tests, callees, root):
         lines.append(f"    ... and {len(refs_only) - 20} more")
 
     # Tests
-    lines.append(f"")
+    lines.append("")
     lines.append(f"  [test] {_fmt_line_count(len(tests))}")
     for t in tests[:10]:
         rel = os.path.relpath(t['file'], root)
@@ -718,7 +718,7 @@ def format_pretty(symbol, defs, refs, tests, callees, root):
 
     # Callees
     if callees:
-        lines.append(f"")
+        lines.append("")
         lines.append(f"  [calls] {_fmt_line_count(len(callees))}")
         for c in callees[:10]:
             rel = os.path.relpath(c['file'], root)

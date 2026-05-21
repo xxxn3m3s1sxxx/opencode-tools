@@ -177,7 +177,7 @@ class TestCLI(unittest.TestCase):
         code, out = self._run(['--root=' + self.tmpdir, '-n', '1'])
         self.assertEqual(code, 0)
         # Should show only 1 commit
-        lines = [l for l in out.split('\n') if l.strip().startswith('- ')]
+        lines = [line for line in out.split('\n') if line.strip().startswith('- ')]
         self.assertLessEqual(len(lines), 1)
 
     def test_json(self):

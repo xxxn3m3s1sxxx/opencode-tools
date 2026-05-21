@@ -120,7 +120,6 @@ def _py_search(pattern: str, path: str, include: str | None, context: int) -> li
             try:
                 with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
                     for n, line in enumerate(fh, 1):
-                        line_stripped = '' if context == 0 else line.rstrip('\n')
                         m = compiled.search(line)
                         if m:
                             entry = {'file': fpath, 'line': n, 'match': m.group(), 'context': []}

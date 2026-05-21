@@ -5,7 +5,11 @@ Each test targets a specific bug from the 19-fix session.
 Ordered so side-effects can't corrupt later tests.
 """
 
-import os, sys, subprocess, tempfile, json
+import os
+import sys
+import subprocess
+import tempfile
+import json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -203,7 +207,7 @@ def test_hashline_parse_args():
 # ============================================================
 def main():
     global PASS, FAIL
-    print(f'\n  Bug-Hunt Regression Tests (19 fixes)')
+    print('\n  Bug-Hunt Regression Tests (19 fixes)')
     print(f'  {"=" * 40}')
     tests = [
         test_impact_cpp_def,

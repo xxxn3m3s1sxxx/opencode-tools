@@ -25,6 +25,11 @@ import re
 import subprocess
 import sys
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except (AttributeError, OSError):
+    pass
+
 
 def _read_file(filepath):
     """Read file content, return (lines, raw)."""
@@ -256,9 +261,9 @@ def format_pretty(result):
         lines.append(f'    old removed:    {old_s}  ("{old_t[:50]}" was at line {result["old_line"]}, {result["old_count"]}x)' if not result['old_removed'] else f'    old removed:    {old_s}')
         lines.append(f'    new present:    {new_s}  (line {result["new_line"]}, {result["new_count"]}x)' if result['new_present'] else f'    new present:    {new_s}')
         if result['status'] == 'ok':
-            lines.append(f'    edit verified ✅')
+            lines.append('    edit verified ✅')
         else:
-            lines.append(f'    edit NOT verified ❌')
+            lines.append('    edit NOT verified ❌')
 
     elif check == 'diff':
         diff = result.get('diff', '')
