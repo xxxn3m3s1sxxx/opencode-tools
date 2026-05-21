@@ -13,6 +13,7 @@ Auto-detects: npm run lint, npm run typecheck, ruff, eslint, tsc --noEmit, mypy,
 """
 import json
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -24,6 +25,8 @@ try:
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 except (AttributeError, OSError):
     pass
+
+_NPX = 'npx.cmd' if platform.system() == 'Windows' else 'npx'
 
 PARSERS: list[tuple[str, re.Pattern, dict]] = []
 
@@ -77,6 +80,38 @@ def _run_command(cmd: list[str], root: str) -> tuple[str, str, int]:
         return "", "Command timed out after 60s", -1
     except PermissionError:
         return "", f"Cannot execute: {cmd[0]}", -1
+
+
+ESLINT_LINE_RE = re.compile(
+    r'^\s*(\d+):(\d+)\s+(warning|error)\s+(.+?)\s+(?:\S+(?:/\S+)?)?\s*$'
+)
+
+
+def _parse_eslint_output(output: str) -> list[dict]:
+    """Parse eslint's multi-line output format."""
+    results = []
+    current_file = None
+    for raw_line in output.split('\n'):
+        line = raw_line.strip()
+        if not line:
+            continue
+        # File path line: absolute or relative path
+        if ':' not in line or (line[1:2] == ':' and len(line) > 2):
+            if '\\' in line or line.startswith('/') or (len(line) > 2 and line[1] == ':'):
+                current_file = line
+                continue
+        # Error line: "  line:col  severity  message  rule"
+        m = ESLINT_LINE_RE.match(raw_line)
+        if m and current_file:
+            results.append({
+                '_parser': 'eslint',
+                'file': current_file,
+                'line': int(m.group(1)),
+                'col': int(m.group(2)),
+                'severity': m.group(3),
+                'message': m.group(4).strip(),
+            })
+    return results
 
 
 def _parse_output(output: str) -> list[dict]:
@@ -144,9 +179,9 @@ def main():
     if tool == 'ruff' or (tool is None and _detect_cmd(root) is None):
         cmd = ['ruff', 'check', '.']
     elif tool == 'eslint':
-        cmd = ['npx', 'eslint', '.']
+        cmd = [_NPX, 'eslint', '.']
     elif tool == 'tsc':
-        cmd = ['npx', 'tsc', '--noEmit']
+        cmd = [_NPX, 'tsc', '--noEmit']
     elif tool == 'mypy':
         cmd = ['mypy']
     elif tool == 'pylint':
@@ -155,9 +190,11 @@ def main():
         detected = _detect_cmd(root)
         if detected:
             cmd = detected.split()
+            if cmd and cmd[0] == 'npx':
+                cmd[0] = _NPX
         else:
             # Default: try ruff, fallback to eslint, tsc
-            for candidate in [['ruff', 'check'], ['npx', 'eslint', '.'], ['npx', 'tsc', '--noEmit']]:
+            for candidate in [['ruff', 'check'], [_NPX, 'eslint', '.'], [_NPX, 'tsc', '--noEmit']]:
                 try:
                     r = subprocess.run(candidate + ['--version' if candidate[0] != 'ruff' else '--version'],
                                        capture_output=True, timeout=5, cwd=root)
@@ -179,6 +216,8 @@ def main():
     stdout, stderr, returncode = _run_command(cmd, root)
     full_output = stdout + stderr
     entries = _parse_output(full_output)
+    if not entries:
+        entries = _parse_eslint_output(full_output)
 
     if use_json:
         result = {

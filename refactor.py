@@ -2,12 +2,12 @@
 """refactor — AST-based symbol renaming (safer than word-boundary).
 
 Usage:
-  refactor <old_name> <new_name>              Rename symbol in all Python files
+  refactor <old_name> <new_name>              Rename symbol in all source files
   refactor <old_name> <new_name> --dry-run    Preview only, no changes
   refactor <old_name> <new_name> --file <f>   Only in specific file
   refactor <old_name> <new_name> --json       Machine-readable output
 
-Uses Python AST to find exact symbol references (not substring matches).
+Uses Python AST for Python files, regex word-boundary for TS/JS files.
 Safer than word-boundary rename: no false positives on partial matches.
 """
 import ast
@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 
 VERSION = "0.1.0"
 
@@ -26,19 +27,21 @@ except (AttributeError, OSError):
 
 
 PY_SOURCE_EXT = {'.py', '.pyi', '.pyx'}
-SKIP_DIRS = {'.git', '__pycache__', 'node_modules', '.venv', 'venv', 'env'}
+TS_SOURCE_EXT = {'.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'}
+SOURCE_EXTS = PY_SOURCE_EXT | TS_SOURCE_EXT
+SKIP_DIRS = {'.git', '__pycache__', 'node_modules', '.venv', 'venv', 'env', 'dist', 'build'}
 SKIP_FILES = {'.gitignore', '.gitattributes'}
 
 
 def _walk_files(root: str) -> list[str]:
     files = []
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith('.')]
         for f in sorted(filenames):
             if f in SKIP_FILES:
                 continue
             ext = os.path.splitext(f)[1].lower()
-            if ext in PY_SOURCE_EXT:
+            if ext in SOURCE_EXTS:
                 files.append(os.path.join(dirpath, f))
     return files
 
@@ -105,7 +108,156 @@ def _find_ast_references(tree: ast.AST, symbol: str, source_lines: list[str]) ->
     return refs
 
 
-SUPPORTED_EXTS = {'.py', '.pyi', '.pyx'}
+SUPPORTED_EXTS = SOURCE_EXTS
+
+
+def _is_ts_ext(ext: str) -> bool:
+    return ext in TS_SOURCE_EXT
+
+
+def _strip_ts_content(content: str) -> str:
+    """Replace string contents and comments with spaces to avoid false positives."""
+    result = list(content)
+    i = 0
+    while i < len(content):
+        # Single-line comment
+        if content[i:i+2] == '//':
+            while i < len(content) and content[i] != '\n':
+                result[i] = ' '
+                i += 1
+            continue
+        # Block comment
+        if content[i:i+2] == '/*':
+            result[i] = ' '
+            result[i+1] = ' '
+            i += 2
+            while i < len(content):
+                if content[i:i+2] == '*/':
+                    result[i] = ' '
+                    result[i+1] = ' '
+                    i += 2
+                    break
+                result[i] = ' '
+                i += 1
+            continue
+        # Template literal
+        if content[i] == '`':
+            result[i] = ' '
+            i += 1
+            while i < len(content) and content[i] != '`':
+                if content[i] == '\\':
+                    result[i] = ' '
+                    i += 1
+                    if i < len(content):
+                        result[i] = ' '
+                        i += 1
+                elif content[i] == '$' and i + 1 < len(content) and content[i+1] == '{':
+                    break  # template expression — keep as-is
+                else:
+                    result[i] = ' '
+                    i += 1
+            if i < len(content):
+                result[i] = ' '
+                i += 1
+            continue
+        # Single-quoted string
+        if content[i] == "'":
+            result[i] = ' '
+            i += 1
+            while i < len(content) and content[i] != "'":
+                if content[i] == '\\':
+                    result[i] = ' '
+                    i += 1
+                if i < len(content):
+                    result[i] = ' '
+                    i += 1
+            if i < len(content):
+                result[i] = ' '
+                i += 1
+            continue
+        # Double-quoted string
+        if content[i] == '"':
+            result[i] = ' '
+            i += 1
+            while i < len(content) and content[i] != '"':
+                if content[i] == '\\':
+                    result[i] = ' '
+                    i += 1
+                if i < len(content):
+                    result[i] = ' '
+                    i += 1
+            if i < len(content):
+                result[i] = ' '
+                i += 1
+            continue
+        # Regex literal (starts with /, not preceded by word char)
+        if content[i] == '/' and (i == 0 or not content[i-1].isalnum()):
+            result[i] = ' '
+            i += 1
+            while i < len(content) and content[i] != '/':
+                if content[i] == '\\':
+                    result[i] = ' '
+                    i += 1
+                if i < len(content):
+                    result[i] = ' '
+                    i += 1
+            if i < len(content):
+                result[i] = ' '
+                i += 1
+            continue
+        i += 1
+    return ''.join(result)
+
+
+def _find_ts_refs(content: str, symbol: str) -> list[dict]:
+    """Find TS/JS symbol references using regex (word-boundary matching)."""
+    refs = []
+    lines = content.split('\n')
+    symbol_escaped = re.escape(symbol)
+    word_pat = re.compile(r'(?<![\w$.])' + symbol_escaped + r'(?![\w$])')
+
+    stripped = _strip_ts_content(content)
+    stripped_lines = stripped.split('\n')
+
+    for lineno, line in enumerate(stripped_lines, 1):
+        for m in word_pat.finditer(line):
+            refs.append({
+                'lineno': lineno,
+                'col_offset': m.start(),
+                'end_col_offset': m.start() + len(symbol),
+                'kind': 'reference',
+            })
+
+    # Kind detection: check original lines for definition/import patterns
+    def_pats = [
+        (r'(?:const|let|var|function|class|interface|type|enum)\s+' + symbol_escaped + r'(?:\s*[:<(=]|\s)', 'definition'),
+        (r'export\s+(?:default\s+)?(?:const|let|var|function|class|interface|type|enum)\s+' + symbol_escaped, 'definition'),
+    ]
+    import_pat = re.compile(r'(?:import|export)\s*\{[^}]*\b' + symbol_escaped + r'\b[^}]*\}\s*from')
+
+    for lineno, line in enumerate(lines, 1):
+        # Check definition patterns
+        for pat, kind in def_pats:
+            m = re.search(pat, line)
+            if m:
+                for r in refs:
+                    if r['lineno'] == lineno:
+                        try:
+                            col = line.index(symbol, r['col_offset'])
+                            if col == r['col_offset']:
+                                r['kind'] = kind
+                        except ValueError:
+                            pass
+        # Check import pattern
+        if import_pat.search(line):
+            for r in refs:
+                if r['lineno'] == lineno and r['kind'] == 'reference':
+                    r['kind'] = 'import'
+
+    # Deduplicate by position
+    seen = set()
+    return [r for r in refs if not (r['lineno'], r['col_offset']) in seen and not seen.add((r['lineno'], r['col_offset']))]
+
 
 def _find_refs_in_file(filepath: str, symbol: str) -> tuple[str | None, list[dict]]:
     ext = os.path.splitext(filepath)[1].lower()
@@ -114,6 +266,9 @@ def _find_refs_in_file(filepath: str, symbol: str) -> tuple[str | None, list[dic
     content = _read_file(filepath)
     if content is None:
         return None, []
+    if _is_ts_ext(ext):
+        refs = _find_ts_refs(content, symbol)
+        return content, refs
     try:
         tree = ast.parse(content, filename=filepath)
     except SyntaxError:
@@ -218,7 +373,7 @@ def main():
         files = _walk_files(root)
 
     if not files:
-        print("No Python files found", file=sys.stderr)
+        print("No supported source files found", file=sys.stderr)
         return 1
 
     all_occurs = []
@@ -229,8 +384,8 @@ def main():
         content, refs = _find_refs_in_file(fp, old_name)
         if content is None:
             ext = os.path.splitext(fp)[1].lower()
-            if ext not in {'.py', '.pyi', '.pyx'}:
-                print(f"  (skipped {fp}: not a Python file)", file=sys.stderr)
+            if ext not in SOURCE_EXTS:
+                print(f"  (skipped {fp}: not a supported file)", file=sys.stderr)
             continue
         if not refs:
             continue

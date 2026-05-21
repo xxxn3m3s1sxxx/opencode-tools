@@ -12,7 +12,7 @@ Commands:
 Options:
   --json                     JSON output (for plugin)
   --root DIR                 Project root (auto-detect)
-  --lang py|cpp|all          Filter by language
+  --lang py|cpp|ts|js|all    Filter by language
 """
 import ast
 import json
@@ -54,6 +54,35 @@ CPP_DEF_PATTERNS = [
     (r'(?:class|struct)\s+(\w+)(?:\s*:\s*public\s+\w+)?\s*\{', 'class'),
     # Macro: #define NAME
     (r'#define\s+(\w+)', 'macro'),
+]
+
+# ─── TypeScript/JavaScript Pattern Definitions ─────────────────────────────
+
+H = r'[ \t]'  # horizontal whitespace (not newline)
+
+TS_DEF_PATTERNS = [
+    # Named function / async function
+    (r'(?:export' + H + r'+)?(?:async' + H + r'+)?function' + H + r'+(?:\*' + H + r'+)?(\w+)', 'function'),
+    # Arrow function in const/let/var: const name = (args) =>
+    (r'(?:export' + H + r'+)?(?:const|let|var)' + H + r'+(\w+)' + H + r'*=' + H + r'*(?:async' + H + r'+)?(?:\([^)]*\)|\w+)' + H + r'*=>', 'arrow_function'),
+    # Class
+    (r'(?:export' + H + r'+)?(?:abstract' + H + r'+)?class' + H + r'+(\w+)', 'class'),
+    # Interface
+    (r'(?:export' + H + r'+)?interface' + H + r'+(\w+)', 'interface'),
+    # Type alias: type Name = ...
+    (r'(?:export' + H + r'+)?type' + H + r'+(\w+)' + H + r'*=', 'type_alias'),
+    # Enum
+    (r'(?:export' + H + r'+)?(?:const' + H + r'+)?enum' + H + r'+(\w+)', 'enum'),
+    # Const/let/var (not arrow functions — catch variables)
+    (r'(?:export' + H + r'+)?(?:const|let|var)' + H + r'+(\w+)' + H + r'*(?::[^=;]+)?' + H + r'*=(?!=)' + H + r'*(?!' + H + r'*(?:\([^)]*\)|\w+)' + H + r'*=>)', 'variable'),
+    # Constructor
+    (r'(?:public|private|protected)?' + H + r'*(constructor)' + H + r'*\(', 'constructor'),
+    # Method in class (name(...) { preceded by indentation in class context)
+    (r'^' + H + r'*(?:public|private|protected|static|readonly|async)' + H + r'+(?:get' + H + r'+|set' + H + r'+)?(\w+)' + H + r'*\([^)]*\)' + H + r'*(?::[^{]+)?' + H + r'*\{', 'method'),
+    # Export default function/class
+    (r'export' + H + r'+default' + H + r'+(?:function' + H + r'+(\w+)|class' + H + r'+(\w+)|(\w+))', 'default_export'),
+    # Decorated class/function (uses \s for newline)
+    (r'@\w+' + H + r'*\n' + H + r'*(?:export' + H + r'+)?(?:class|function)' + H + r'+(\w+)', 'decorated'),
 ]
 
 # ─── Python AST Analysis ──────────────────────────────────────────────────
@@ -212,6 +241,77 @@ def _cpp_find_definitions(filepath, symbol):
     return matches
 
 
+# ─── TypeScript/JavaScript Analysis ────────────────────────────────────────
+
+
+TS_COMMENT_RE = re.compile(r'//.*$|/\*.*?\*/|^\s*\*', re.MULTILINE | re.DOTALL)
+TS_STRING_RE = re.compile(r'''['"`][^'"`]*['"`]''')
+
+
+def _strip_ts_comments_and_strings(source):
+    """Remove comments and string literals before regex matching."""
+    # Replace string literals with spaces
+    result = TS_STRING_RE.sub(lambda m: ' ' * len(m.group(0)), source)
+    # Replace comments with spaces
+    result = TS_COMMENT_RE.sub(lambda m: ' ' * len(m.group(0)), result)
+    # Collapse runs of 3+ horizontal whitespace to prevent regex backtracking
+    result = re.sub(r'[ \t]{3,}', '   ', result)
+    return result
+
+
+def _ts_find_definitions(filepath, symbol):
+    """Find TypeScript/JS definitions matching symbol using regex patterns."""
+    matches = []
+    try:
+        source = _read_file(filepath)
+        lines = source.split("\n") if source else []
+    except (UnicodeDecodeError, OSError):
+        try:
+            with open(filepath, 'rb') as f:
+                raw = f.read()
+            source = raw.decode('utf-8', errors='replace')
+            lines = source.split('\n')
+        except OSError:
+            return matches
+
+    clean = _strip_ts_comments_and_strings(source)
+
+    for pattern, kind in TS_DEF_PATTERNS:
+        for m in re.finditer(pattern, clean, re.MULTILINE):
+            # Find the name capture group (smallest numbered group that has a value)
+            name = ''
+            for g in range(1, m.lastindex + 1):
+                val = m.group(g)
+                if val:
+                    name = val
+                    break
+            if not name or name == symbol:
+                line_no = clean[:m.start()].count('\n') + 1
+                context = lines[line_no - 1][:120] if line_no <= len(lines) else ''
+                matches.append({
+                    'type': kind,
+                    'name': name,
+                    'file': str(filepath),
+                    'line': line_no,
+                    'context': context.strip(),
+                })
+
+    # Deduplicate by file+line
+    seen = set()
+    unique = []
+    for r in sorted(matches, key=lambda x: (x['file'], x['line'])):
+        key = (r['file'], r['line'], r['type'])
+        if key not in seen:
+            seen.add(key)
+            unique.append(r)
+    return unique
+
+
+def _ts_find_references(filepath, symbol):
+    """Find all references to a symbol in a TS/JS file (word-boundary grep)."""
+    return _grep_find_references(filepath, symbol)
+
+
 # ─── Generic Reference Search (rg/grep) ──────────────────────────────────
 
 
@@ -256,15 +356,23 @@ def _is_cpp(filepath):
     return ext in ('.cpp', '.c', '.h', '.hpp', '.cc', '.cxx', '.hxx', '.hh')
 
 
+def _is_typescript(filepath):
+    ext = os.path.splitext(filepath)[1].lower()
+    return ext in ('.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs')
+
+
 def _is_test_file(filepath):
     name = os.path.basename(filepath)
-    return name.startswith('test_') or name.endswith('_test.py') or \
-           name.endswith('_test.cpp') or '_test.' in name or \
-           '/test_' in filepath.replace('\\', '/')
+    fwd = filepath.replace('\\', '/')
+    return name.startswith('test_') or \
+           name.endswith('_test.py') or name.endswith('_test.cpp') or \
+           name.endswith('.test.ts') or name.endswith('.test.tsx') or \
+           name.endswith('.test.js') or name.endswith('.test.jsx') or \
+           '_test.' in name or '/test_' in fwd or '.spec.' in name
 
 
 def _is_source_file(filepath):
-    return _is_python(filepath) or _is_cpp(filepath)
+    return _is_python(filepath) or _is_cpp(filepath) or _is_typescript(filepath)
 
 
 # ─── Core Analyzer ────────────────────────────────────────────────────────
@@ -300,12 +408,14 @@ class ImpactAnalyzer:
             # Skip common non-source dirs
             dirs[:] = [d for d in dirs if not d.startswith('.') and
                        d not in ('__pycache__', 'node_modules', 'build',
-                                 '.git', '.eggs', 'env', 'venv')]
+                                 'dist', '.git', '.eggs', 'env', 'venv')]
             for name in names:
                 fpath = os.path.join(root, name)
                 if lang == 'py' and _is_python(fpath):
                     files.append(fpath)
                 elif lang == 'cpp' and _is_cpp(fpath):
+                    files.append(fpath)
+                elif lang in ('ts', 'js') and _is_typescript(fpath):
                     files.append(fpath)
                 elif lang == 'all' and _is_source_file(fpath):
                     files.append(fpath)
@@ -321,6 +431,8 @@ class ImpactAnalyzer:
                 results.extend(_py_find_definitions(fp, symbol))
             elif _is_cpp(fp):
                 results.extend(_cpp_find_definitions(fp, symbol))
+            elif _is_typescript(fp):
+                results.extend(_ts_find_definitions(fp, symbol))
         # Deduplicate by file+line
         seen = set()
         unique = []
@@ -339,6 +451,8 @@ class ImpactAnalyzer:
                 results.extend(_py_find_references(fp, symbol))
             elif _is_cpp(fp):
                 results.extend(_grep_find_references(fp, symbol))
+            elif _is_typescript(fp):
+                results.extend(_ts_find_references(fp, symbol))
         seen = set()
         unique = []
         for r in sorted(results, key=lambda x: (x['file'], x['line'])):
@@ -358,6 +472,8 @@ class ImpactAnalyzer:
                 results.extend(_py_find_references(fp, symbol))
             elif _is_cpp(fp):
                 results.extend(_grep_find_references(fp, symbol))
+            elif _is_typescript(fp):
+                results.extend(_ts_find_references(fp, symbol))
         seen = set()
         unique = []
         for r in sorted(results, key=lambda x: (x['file'], x['line'])):
@@ -407,6 +523,31 @@ class ImpactAnalyzer:
             for pattern, kind in CPP_DEF_PATTERNS:
                 for m in re.finditer(pattern, source):
                     name = m.group(1) if kind != 'method' else m.group(2)
+                    line_no = clean[:m.start()].count('\n') + 1
+                    matches.append({'name': name, 'type': kind, 'line': line_no})
+            seen = set()
+            unique = []
+            for m in sorted(matches, key=lambda x: x['line']):
+                key = (m['name'], m['line'])
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(m)
+            return unique
+        elif _is_typescript(filepath):
+            matches = []
+            try:
+                source = _read_file(filepath)
+            except OSError:
+                return matches
+            clean = _strip_ts_comments_and_strings(source)
+            for pattern, kind in TS_DEF_PATTERNS:
+                for m in re.finditer(pattern, clean, re.MULTILINE):
+                    name = ''
+                    for g in range(1, m.lastindex + 1):
+                        val = m.group(g)
+                        if val:
+                            name = val
+                            break
                     line_no = source[:m.start()].count('\n') + 1
                     matches.append({'name': name, 'type': kind, 'line': line_no})
             seen = set()
@@ -494,19 +635,19 @@ class ImpactAnalyzer:
         if call_match:
             return call_match.group(1)
 
-        # 2. Class/function def pattern: def/class identifier
-        def_match = re.match(r'\s*(?:def|class)\s+(\w+)', line)
+        # 2. Class/function def pattern: def/class/function/interface/type identifier
+        def_match = re.match(r'\s*(?:def|class|function|interface|type|enum)\s+(\w+)', line)
         if def_match:
             return def_match.group(1)
 
-        # 3. Assignment: target = 
-        assign_match = re.match(r'\s*(\w+)\s*=', line)
+        # 3. Assignment: target = (const/let/var or just name)
+        assign_match = re.match(r'\s*(?:const|let|var)?\s*(\w+)\s*(?::[^=;]+)?\s*=', line)
         if assign_match:
             return assign_match.group(1)
 
         # 4. First enclosing function/class name (walking upward for context)
         for check_line in range(line_no - 2, -1, -1):
-            ctx_match = re.match(r'^\s*(?:def|class|async\s+def)\s+(\w+)', lines[check_line])
+            ctx_match = re.match(r'^\s*(?:def|class|function|interface|type|enum|async\s+def|export\s+default)\s+(\w+)', lines[check_line])
             if ctx_match:
                 return ctx_match.group(1)
         # 5. Generic: first non-keyword identifier

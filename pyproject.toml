@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opencode-tools"
+version = "0.3.0"
+description = "OpenCode plugin suite — CLI tools for AI-assisted coding (graph, impact, lint, refactor, ...)"
+requires-python = ">=3.11"
+
+[project.scripts]
+graph = "graph:main"
+changelog = "changelog:main"
+impact = "impact:main"
+lint = "lint:main"
+refactor = "refactor:main"
+rename = "rename:main"
+verify = "verify:main"
+search = "search:main"
+trace = "trace:main"
+hashline = "hashline:main"
+
+[tool.setuptools]
+py-modules = [
+    "graph", "changelog", "impact", "lint", "refactor",
+    "rename", "verify", "search", "trace", "hashline",
+]

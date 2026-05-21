@@ -133,6 +133,10 @@ foreach ($tool in $Tools) {
 
 # --- Done ---
 Write-Host "`n  Tools installed! Restart OpenCode to activate.`n"
+if (Test-Path "$PSScriptRoot\pyproject.toml") {
+    Write-Host "  Optional: pip install -e `"$PSScriptRoot`""
+    Write-Host "  (makes graph, lint, impact, ... available system-wide)`n"
+}
 Write-Host "  Installed: $($Tools -join ', ')`n"
 Write-Host "  Test:"
 foreach ($tool in $Tools) {

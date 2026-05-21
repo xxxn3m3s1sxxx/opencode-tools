@@ -81,10 +81,10 @@ def _parse_py_imports(source: str) -> list[str]:
 
 
 TS_IMPORT_RE = re.compile(
-    r"""import\s+(?:(?:\{[^}]*\}|\w+(?:\s*,\s*(?:\{[^}]*\}|\w+))?)\s+from\s+)?['"]([^'"]+)['"]""",
+    r"""import\s+(?:type\s+)?(?:(?:\{[^}]*\}|\w+(?:\s*,\s*(?:\{[^}]*\}|\w+))?|\*\s+as\s+\w+)\s+from\s+)?['"]([^'"]+)['"]""",
 )
 TS_REQUIRE_RE = re.compile(r"""require\s*\(\s*['"]([^'"]+)['"]\s*\)""")
-TS_EXPORT_RE = re.compile(r"""export\s+(?:\{[^}]*\}|(?:\w+\s+)*\w+)\s+from\s+['"]([^'"]+)['"]""")
+TS_EXPORT_RE = re.compile(r"""export\s+(?:type\s+)?(?:\{[^}]*\}|(?:\w+\s+)*\w+)\s+from\s+['"]([^'"]+)['"]""")
 
 
 def _parse_ts_imports(source: str) -> list[str]:
@@ -113,7 +113,7 @@ def _resolve_import_path(imp: str, filepath: str, root: str) -> str | None:
     exts_ordered = [caller_ext] + sorted(e for e in SOURCE_EXTS if e != caller_ext)
 
     if imp.startswith('.'):
-        rel = os.path.normpath(os.path.join(base, imp.replace('.', '/')))
+        rel = os.path.normpath(os.path.join(base, imp))
         for ext in exts_ordered:
             p = rel + ext
             if os.path.exists(p):
@@ -314,6 +314,8 @@ def main():
             root = a.split('=', 1)[1]; i += 1
         elif a.startswith('--'):
             print(f"Unknown flag: {a}", file=sys.stderr); return 1
+        elif os.path.isdir(a):
+            root = a; i += 1
         else:
             file_arg = a; i += 1
 
