@@ -1,4 +1,4 @@
-# OpenCode Tools — Low-Latency Repository Analysis & AI Coding Agents
+# OpenCode Tools — Low-Latency Repository Analysis & AI Coding Assistants
 
 [![Tools](https://img.shields.io/badge/tools-13-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Tests](https://img.shields.io/badge/tests-366-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
@@ -9,40 +9,51 @@
 [![Linux](https://img.shields.io/badge/linux-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 [![macOS](https://img.shields.io/badge/macos-passing-brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 
-**13 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, and more. All pure Python stdlib (no pip install beyond OpenCode itself).
+**13 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
 
-> ⚡ **Parses 5000+ files in under 0.3 seconds** — `graph.py` maps imports, dependents, and cycles across 50k+ line codebases in a single scan. Cross-platform (Windows/Linux/macOS), works with Python, TypeScript, C++, and C.
+> ⚡ **Parses 5000+ files in under 0.3 seconds** — `graph.py` maps imports, dependents, and cycles across 50k+ line codebases with UNC-safe path handling and sub-100ms cold starts.
 
-## Tools
+---
 
-### Core Editing
-| Tool | File | Description |
-|------|------|-------------|
-| `edit` | hashline.py | Edit file by finding and replacing text. Tries exact match, auto-retries with hash-anchored fallback. |
-| `hashline_edit` | hashline.py | Explicit hash-anchored content edit. Handles trailing whitespace, indent mismatches, extra blank lines. |
-| `hashline_patch` | hashline.py | Apply raw hashline diff format to a file. `@@ path / + ANCHOR~payload / - A..B` |
-| `hashline_stats` | hashline.py | Show edit() intervention rate — how often direct match fails and hashline salvages. |
+## Quick Start
 
-### Analysis
-| Tool | File | Description |
-|------|------|-------------|
-| `impact` | impact.py | Change impact analyzer. Find definitions, references, tests, callers for any symbol. Python AST + C++ heuristics. |
-| `verify` | verify.py | Post-edit verification. Confirm file has expected content, check line, context, old/new. |
-| `trace` | trace.py | Recursive call chain analyzer. Follow execution paths: who calls a function, what it calls. |
-| `graph` | graph.py | File-level dependency analyzer. Show imports, dependents, dependency trees, cycles. Python/TS/C++. |
-| `search` | search.py | Rich grep wrapper with regex, file filters (--include), context lines (--context), JSON output. |
-| `lint` | lint.py | Run project lint/typecheck and parse output into structured results. Supports ruff/eslint/tsc/mypy/pylint. |
+```bash
+git clone https://github.com/xxxn3m3s1sxxx/opencode-tools.git
+cd opencode-tools
+pip install -e .
+```
 
-### Refactoring
-| Tool | File | Description |
-|------|------|-------------|
-| `rename` | rename.py | Word-boundary `\b` symbol renaming across all source files. Multi-language. |
-| `refactor` | refactor.py | **AST-based** symbol renaming (Python). Safer than word-boundary — no false positives on partial matches. |
+That's it. All 13 tools are now available as CLI commands. No `npm install`, no `requirements.txt`, no virtualenv dance.
 
-### History
-| Tool | File | Description |
-|------|------|-------------|
-| `changelog` | changelog.py | Formatted git log with conventional-commit category grouping (feat/fix/docs/refactor/…). Auto-detects git root. |
+## Usage Examples
+
+| Category | Command | What it does |
+|----------|---------|-------------|
+| **Editing** | `hashline_edit file.py --old "foo" --new "bar"` | Hash-anchored content replace — handles whitespace/indent mismatches |
+| | `hashline_patch file.py --diff "@@ path / + ANCHOR~text"` | Apply raw hashline diff format |
+| | `hashline_stats` | Show edit() fallback rate — how often direct match fails |
+| **Analysis** | `impact def <symbol>` | Find definition of any symbol (Python/C++/TS) |
+| | `impact refs <symbol>` | Find all references to a symbol |
+| | `impact tests <symbol>` | Find test files using a symbol |
+| | `impact <symbol>` | Show everything: def + refs + tests |
+| | `verify file.py` | Confirm file has expected content |
+| | `verify file.py:42 --context 5` | Show context at line 42 |
+| | `trace forward --down -d 3` | Recursive call chain, 3 levels deep |
+| | `trace AtlasModel --up` | Who calls AtlasModel? |
+| | `graph src/main.py` | Show imports + dependents of a file |
+| | `graph --circular` | Find circular dependencies |
+| | `graph --stats` | Project-wide dependency stats |
+| | `search "def main" --include *.py` | Regex search with file filter |
+| | `search "TODO|FIXME" --context 2` | With context lines |
+| | `lint ruff` | Run ruff on current project |
+| | `lint tsc src/main.ts` | Run tsc on specific file |
+| **Refactoring** | `rename foo bar` | Word-boundary rename across all source files |
+| | `rename old_name new_name --lang py` | Only Python files |
+| | `refactor foo bar` | **AST-based** rename — no false positives on partial matches |
+| | `refactor foo bar --dry-run` | Preview before renaming |
+| **History** | `changelog` | Recent commits with category grouping |
+| | `changelog -n 50` | Last 50 commits |
+| | `changelog --since 2024-01-01` | Commits since date |
 
 ## Quick Install
 
@@ -69,19 +80,44 @@ curl -fsSL https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main/i
 ## Manual Install
 
 ```bash
-# 1. Copy all plugin files + engines to OpenCode plugins dir
 cp *.ts *.py ~/.config/opencode/plugins/
-
-# 2. (Optional) Copy engines to project root for CLI usage
 cp *.py /path/to/project/
-
-# 3. Restart OpenCode
 ```
+
+## All Tools
+
+### Core Editing
+| Tool | File | Description |
+|------|------|-------------|
+| `edit` | hashline.py | Replace text by exact match; auto-retries with hash-anchored fallback |
+| `hashline_edit` | hashline.py | Explicit hash-anchored edit — handles whitespace, indent, blank lines |
+| `hashline_patch` | hashline.py | Apply raw hashline diff format (`@@ path / + ANCHOR~payload`) |
+| `hashline_stats` | hashline.py | Show edit() fallback rate |
+
+### Analysis
+| Tool | File | Description |
+|------|------|-------------|
+| `impact` | impact.py | Symbol analysis — definitions, references, tests, callers. Python AST + C++ heuristics |
+| `verify` | verify.py | Post-edit verification — confirm content, check lines, old/new |
+| `trace` | trace.py | Recursive call chain — follow execution paths up/down |
+| `graph` | graph.py | File-level dependency graph — imports, dependents, cycles. Python/TS/C++ |
+| `search` | search.py | Rich grep — regex, file filters, context lines, JSON output |
+| `lint` | lint.py | Structured lint — ruff/eslint/tsc/mypy/pylint output parsing |
+
+### Refactoring
+| Tool | File | Description |
+|------|------|-------------|
+| `rename` | rename.py | Word-boundary `\b` symbol rename across all source files |
+| `refactor` | refactor.py | **AST-based** rename (Python) — no false positives on partial matches |
+
+### History
+| Tool | File | Description |
+|------|------|-------------|
+| `changelog` | changelog.py | Formatted git log with conventional-commit grouping (feat/fix/docs/refactor) |
 
 ## Development
 
 ```bash
-# Run all tests
 python test_hashline.py
 python test_impact.py
 python test_verify.py
@@ -91,14 +127,12 @@ python test_changelog.py
 python test_search.py
 python test_lint.py
 python test_refactor.py
-
-# Deep test suites
 python deeper_tests.py
 python regression_tests.py
 python stress_test.py
 ```
 
-## Test Status (366+ tests, all green)
+## Test Status (366+ tests)
 
 | Suite | Tests | Status |
 |-------|-------|--------|
@@ -116,9 +150,9 @@ python stress_test.py
 
 ```
 opencode-tools/
-├── utils.ts              # Shared utilities (detectPython, splitArgs)
+├── utils.ts              # Shared utilities
 ├── hashline.py/.ts       # Hash-anchored editing (v0.3.0)
-├── impact.py/.ts         # Change impact analysis (v0.1.1)
+├── impact.py/.ts         # Impact analysis (v0.1.1)
 ├── verify.py/.ts         # Post-edit verification (v0.1.0)
 ├── trace.py/.ts          # Recursive call chain (v0.1.0)
 ├── rename.py/.ts         # Word-boundary rename (v0.1.0)
@@ -135,18 +169,15 @@ opencode-tools/
 ├── install.ps1           # Windows PowerShell installer
 ├── install.bat           # Windows cmd installer
 ├── .github/workflows/ci.yml
-├── package.json
+├── pyproject.toml        # Python packaging
+├── package.json          # TS plugin metadata
+├── LICENSE               # MIT
 └── README.md
 ```
 
-## Why Separate Tools?
-
-Each tool solves one problem and solves it well. Combined install for
-convenience, independent versioning for flexibility.
-
 ## Tech Stack
 - **Plugins**: TypeScript, @opencode-ai/plugin v1.14.20
-- **Engines**: Python 3.10+ (stdlib only — no external deps)
+- **Engines**: Python 3.10+ (stdlib only — zero external deps)
 - **Tests**: Python unittest (no pytest required)
 
 ## License
