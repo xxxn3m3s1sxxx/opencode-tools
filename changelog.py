@@ -177,18 +177,27 @@ def main():
     while i < len(raw):
         a = raw[i]
         if a == '--json':
-            use_json = True; i += 1
+            use_json = True
+            i += 1
         elif a == '-n' and i + 1 < len(raw):
-            try: count = int(raw[i + 1]); i += 2
-            except ValueError: print(f"Invalid count: {raw[i+1]}", file=sys.stderr); return 1
+            try:
+                count = int(raw[i + 1])
+                i += 2
+            except ValueError:
+                print(f"Invalid count: {raw[i+1]}", file=sys.stderr)
+                return 1
         elif a == '--from' and i + 1 < len(raw):
-            git_args.extend([f'{raw[i+1]}..HEAD']); i += 2
+            git_args.extend([f'{raw[i+1]}..HEAD'])
+            i += 2
         elif a == '--to' and i + 1 < len(raw):
-            git_args.extend([f'HEAD..{raw[i+1]}']); i += 2
+            git_args.extend([f'HEAD..{raw[i+1]}'])
+            i += 2
         elif a == '--range' and i + 1 < len(raw):
-            git_args.append(raw[i + 1]); i += 2
+            git_args.append(raw[i + 1])
+            i += 2
         elif a == '--file' and i + 1 < len(raw):
-            git_args.extend(['--', raw[i + 1]]); i += 2
+            git_args.extend(['--', raw[i + 1]])
+            i += 2
         elif a == '--since' and i + 1 < len(raw):
             git_args.extend(['--since', raw[i + 1]]); i += 2
         elif a == '--root':
