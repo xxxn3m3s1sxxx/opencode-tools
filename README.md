@@ -1,13 +1,13 @@
 # OpenCode Tools — Low-Latency Repository Analysis & AI Coding Assistants
 
-[![Tools](https://img.shields.io/static/v1?label=tools&message=19&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
+[![Tools](https://img.shields.io/static/v1?label=tools&message=20&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
 [![Tests](https://img.shields.io/static/v1?label=tests&message=360%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
 [![CI](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/static/v1?label=python&message=3.11%2B&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)](LICENSE)
 [![Release](https://img.shields.io/static/v1?label=release&message=v0.5.1&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
 
-**19 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, health summary, workspace snapshots, secret scanning, dead code detection, git churn, pre-commit gates, format runners, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
+**20 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, health summary, workspace snapshots, secret scanning, dead code detection, git churn, pre-commit gates, format runners, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
 
 After `pip install -e .`, every tool becomes a **global CLI command** — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `calltrace`, `changelog`, `hashline`, `health`, `snapshot`, `todo`, `tags`, `check`, `audit`, `fmt`, `churn`, `report`, `ghost`. All via `pyproject.toml` entry points, zero shell config needed.
 
@@ -23,7 +23,7 @@ cd opencode-tools
 pip install -e .
 ```
 
-That's it. All 19 tools are now available as **global CLI commands** via `pyproject.toml` entry points. No aliases, no PATH hacking.
+That's it. All 20 tools are now available as **global CLI commands** via `pyproject.toml` entry points. No aliases, no PATH hacking.
 
 ## Performance
 
@@ -172,7 +172,7 @@ python -m pytest -q        # Run all tests
 python smoke_test.py       # Smoke test all tools
 ```
 
-## Test Status (360+ tests)
+## Test Status (430+ tests)
 
 | Suite | Tests | Status |
 |-------|-------|--------|
@@ -187,9 +187,12 @@ python smoke_test.py       # Smoke test all tools
 | refactor | 21 | ✅ All pass |
 | installers | 6 | ✅ All pass |
 | regression | 19 | ✅ All pass |
+| new tools | 32 | ✅ All pass |
+| stress | 37 | ✅ All pass |
+| deeper | 27 | ✅ All pass |
 | health | — (runs live checks) | ✅ All pass |
 | snapshot | — (integration) | ✅ All pass |
-| smoke | 71 (self-test all 19 tools) | ✅ All pass |
+| smoke | 74 (self-test all 20 tools) | ✅ 72 pass |
 
 ## Project Structure
 
@@ -216,18 +219,18 @@ opencode-tools/
 ├── churn.py              # Git churn analysis (v0.5.1)
 ├── report.py             # Combined report (v0.5.1)
 ├── ghost.py              # Dead code finder (v0.5.1)
-├── common.py             # Shared utilities (19 tools)
+├── common.py             # Shared utilities (20 tools)
 ├── test_*.py             # Test suites
 ├── deeper_tests.py       # 27 deep edge tests
 ├── regression_tests.py   # 22 regression tests
 ├── stress_test.py        # 39 stress tests
-├── smoke_test.py         # Self-test all 19 tools (71 checks)
+├── smoke_test.py         # Self-test all 20 tools (74 checks)
 ├── install.sh            # Linux/macOS installer
 ├── install.ps1           # Windows PowerShell installer
 ├── install.bat           # Windows cmd installer
 ├── .github/workflows/ci.yml
-├── pyproject.toml        # Python packaging — 19 console_scripts
-├── package.json          # TS plugin metadata — 19 entries
+├── pyproject.toml        # Python packaging — 20 console_scripts
+├── package.json          # TS plugin metadata — 20 entries
 ├── LICENSE               # MIT
 └── README.md
 ```
