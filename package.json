@@ -48,6 +48,7 @@
     "report.py",
     "ghost.ts",
     "ghost.py",
+    "CHANGELOG.md",
     "README.md"
   ],
   "scripts": {
