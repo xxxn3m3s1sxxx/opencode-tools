@@ -199,6 +199,18 @@ def test_health():
     check("--check mode works", r.returncode in (0, 1))
 
 
+def test_snapshot():
+    print("\n--- snapshot ---")
+    r = _tool("snapshot", "--show")
+    check("snapshot shows git info", r.returncode == 0 and "Git" in r.stdout)
+
+    r = _tool("snapshot", "--version")
+    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+
+    r = _tool("snapshot")
+    check("snapshot saves file", r.returncode == 0 and "Snapshot saved" in r.stdout)
+
+
 def main():
     print(f"Smoke test: opencode-tools v0.4.0 self-test")
     print(f"Tools dir: {TOOLS_DIR}")
@@ -215,6 +227,7 @@ def main():
         test_lint,
         test_hashline,
         test_health,
+        test_snapshot,
     ]
     for t in tests:
         t()

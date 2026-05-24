@@ -10,3 +10,4 @@ node_modules/
 Thumbs.db
 temp/
 *.tmp
+.opencode/snapshots/

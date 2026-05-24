@@ -29,6 +29,7 @@
     "refactor.ts",
     "refactor.py",
     "health.py",
+    "snapshot.py",
     "README.md"
   ],
   "scripts": {
