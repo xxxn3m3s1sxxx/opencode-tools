@@ -1,13 +1,11 @@
 # OpenCode Tools — Low-Latency Repository Analysis & AI Coding Assistants
 
-[![Tools](https://img.shields.io/static/v1?label=tools&message=19&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Tests](https://img.shields.io/static/v1?label=tests&message=360%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Speed](https://img.shields.io/static/v1?label=parse&message=5000%2B%20files%20in%20%3C0.3s&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Tools](https://img.shields.io/static/v1?label=tools&message=19&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
+[![Tests](https://img.shields.io/static/v1?label=tests&message=360%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
+[![CI](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/static/v1?label=python&message=3.11%2B&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)](LICENSE)
-[![Windows](https://img.shields.io/static/v1?label=windows&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
-[![Linux](https://img.shields.io/static/v1?label=linux&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
-[![macOS](https://img.shields.io/static/v1?label=macos&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
+[![Release](https://img.shields.io/static/v1?label=release&message=v0.5.1&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
 
 **19 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, health summary, workspace snapshots, secret scanning, dead code detection, git churn, pre-commit gates, format runners, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
 
