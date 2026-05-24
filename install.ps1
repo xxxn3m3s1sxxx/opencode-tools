@@ -112,6 +112,7 @@ Write-Host "  [common] plugin..."
 Install-File "src/common.py" "$PluginDir\common.py" "common.py"
 
 foreach ($tool in $Tools) {
+    $tsfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
     Install-File "plugins/$tsfile.ts" "$PluginDir\$tsfile.ts" "$tsfile.ts"
 }
 
