@@ -41,7 +41,7 @@ def _rt(name, *args, **kw):
 
 
 def _tmp(src="", suffix=".py", binary=False):
-    fd, path = tempfile.mkstemp(suffix=suffix, dir=TOOLS_DIR)
+    fd, path = tempfile.mkstemp(suffix=suffix, dir=tempfile.gettempdir())
     os.close(fd)
     if src:
         mode = "wb" if binary else "w"

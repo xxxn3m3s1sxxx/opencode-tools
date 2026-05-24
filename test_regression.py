@@ -48,9 +48,12 @@ def check(desc, cond):
         FAIL += 1
 
 
+_TMP_FILES = []
+
 def _tmpfile(src="", suffix=".py"):
-    fd, path = tempfile.mkstemp(suffix=suffix, dir=TOOLS_DIR)
+    fd, path = tempfile.mkstemp(suffix=suffix, dir=tempfile.gettempdir())
     os.close(fd)
+    _TMP_FILES.append(path)
     if src:
         with open(path, "w", encoding="utf-8") as f:
             f.write(src)
@@ -271,6 +274,11 @@ def main():
     ]
     for t in tests:
         t()
+    for p in _TMP_FILES:
+        try:
+            os.unlink(p)
+        except OSError:
+            pass
     total = PASS + FAIL
     print(f"\n  [{PASS}/{total} passed]")
     if FAIL:
