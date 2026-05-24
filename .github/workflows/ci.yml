@@ -96,6 +96,10 @@ jobs:
       - name: regression tests
         run: python test_regression.py
 
+      # ── Smoke test (self-test all tools) ──
+      - name: smoke test
+        run: python smoke_test.py
+
       # ── Stress tests ──
       - name: stress tests
         run: python stress_tools.py
