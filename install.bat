@@ -15,11 +15,15 @@ set "REPO_BASE=https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/ma
 set "TOOLS=utils hashline impact verify trace changelog graph lint refactor rename search health snapshot todo tags check audit fmt churn report ghost"
 set "LOCAL=0"
 
-REM --- Check for /local flag ---
+REM --- Check flags ---
+set "UNINSTALL=0"
 for %%a in (%*) do (
     if /I "%%a"=="/local" set "LOCAL=1"
     if /I "%%a"=="-local" set "LOCAL=1"
     if /I "%%a"=="--local" set "LOCAL=1"
+    if /I "%%a"=="/uninstall" set "UNINSTALL=1"
+    if /I "%%a"=="-uninstall" set "UNINSTALL=1"
+    if /I "%%a"=="--uninstall" set "UNINSTALL=1"
 )
 
 REM --- Detect OpenCode config dir ---
@@ -51,15 +55,33 @@ echo   Config: %OPCODE_DIR%
 echo   Project: %PROJECT%
 echo.
 
+REM --- Uninstall ---
+if "%UNINSTALL%"=="1" (
+    echo.
+    echo   Uninstalling...
+    if exist "%OPCODE_DIR%\plugins" rmdir /S /Q "%OPCODE_DIR%\plugins"
+    if exist "%PROJECT%\.opencode\plugins" rmdir /S /Q "%PROJECT%\.opencode\plugins"
+    for %%t in (%TOOLS%) do (
+        if not "%%t"=="utils" (
+            set "PYFILE=%%t"
+            if "%%t"=="trace" set "PYFILE=calltrace"
+            if exist "%PROJECT%\!PYFILE!.py" del /Q "%PROJECT%\!PYFILE!.py"
+        )
+    )
+    echo   Uninstall complete.
+    echo.
+    exit /b 0
+)
+
 REM --- Install plugins ---
 if not exist "%OPCODE_DIR%\plugins" mkdir "%OPCODE_DIR%\plugins"
 
 REM --- Copy common.py (shared dependency) ---
 if "%LOCAL%"=="1" (
-    if exist "%~dp0common.py" copy /Y "%~dp0common.py" "%OPCODE_DIR%\plugins\common.py" >nul
+    if exist "%~dp0src\common.py" copy /Y "%~dp0src\common.py" "%OPCODE_DIR%\plugins\common.py" >nul
 ) else (
     if not exist "%OPCODE_DIR%\plugins\common.py" (
-        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/common.py' -OutFile '%OPCODE_DIR%\plugins\common.py' -UseBasicParsing" >nul
+        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/src/common.py' -OutFile '%OPCODE_DIR%\plugins\common.py' -UseBasicParsing" >nul
     )
 )
 
@@ -71,14 +93,14 @@ for %%t in (%TOOLS%) do (
     if "%%t"=="trace" set "TSFILE=calltrace"
     echo   [%%t] plugin...
     if "%LOCAL%"=="1" (
-        if exist "%~dp0!TSFILE!.ts" (
-            copy /Y "%~dp0!TSFILE!.ts" "%OPCODE_DIR%\plugins\!TSFILE!.ts" >nul
+        if exist "%~dp0plugins\!TSFILE!.ts" (
+            copy /Y "%~dp0plugins\!TSFILE!.ts" "%OPCODE_DIR%\plugins\!TSFILE!.ts" >nul
             echo     OK (local)
         ) else (
             echo     SKIP (not found)
         )
     ) else (
-        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/!TSFILE!.ts' -OutFile '%OPCODE_DIR%\plugins\!TSFILE!.ts' -UseBasicParsing" >nul
+        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/plugins/!TSFILE!.ts' -OutFile '%OPCODE_DIR%\plugins\!TSFILE!.ts' -UseBasicParsing" >nul
         if exist "%OPCODE_DIR%\plugins\!TSFILE!.ts" (
             echo     OK
         ) else (
@@ -93,9 +115,9 @@ if not exist "%PROJECT%\.opencode\plugins" mkdir "%PROJECT%\.opencode\plugins"
 REM --- Copy common.py to project-local ---
 if not exist "%PROJECT%\.opencode\plugins\common.py" (
     if "%LOCAL%"=="1" (
-        if exist "%~dp0common.py" copy /Y "%~dp0common.py" "%PROJECT%\.opencode\plugins\common.py" >nul
+        if exist "%~dp0src\common.py" copy /Y "%~dp0src\common.py" "%PROJECT%\.opencode\plugins\common.py" >nul
     ) else (
-        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/common.py' -OutFile '%PROJECT%\.opencode\plugins\common.py' -UseBasicParsing" >nul
+        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/src/common.py' -OutFile '%PROJECT%\.opencode\plugins\common.py' -UseBasicParsing" >nul
     )
 )
 
@@ -104,9 +126,9 @@ for %%t in (%TOOLS%) do (
     if "%%t"=="trace" set "TSFILE=calltrace"
     if not exist "%PROJECT%\.opencode\plugins\!TSFILE!.ts" (
         if "%LOCAL%"=="1" (
-            if exist "%~dp0!TSFILE!.ts" copy /Y "%~dp0!TSFILE!.ts" "%PROJECT%\.opencode\plugins\!TSFILE!.ts" >nul
+            if exist "%~dp0plugins\!TSFILE!.ts" copy /Y "%~dp0plugins\!TSFILE!.ts" "%PROJECT%\.opencode\plugins\!TSFILE!.ts" >nul
         ) else (
-            powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/!TSFILE!.ts' -OutFile '%PROJECT%\.opencode\plugins\!TSFILE!.ts' -UseBasicParsing" >nul
+            powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/plugins/!TSFILE!.ts' -OutFile '%PROJECT%\.opencode\plugins\!TSFILE!.ts' -UseBasicParsing" >nul
         )
     )
 )
@@ -118,9 +140,9 @@ for %%t in (%TOOLS%) do (
         if "%%t"=="trace" set "PYFILE=calltrace"
         if not exist "%OPCODE_DIR%\plugins\!PYFILE!.py" (
             if "%LOCAL%"=="1" (
-                if exist "%~dp0!PYFILE!.py" copy /Y "%~dp0!PYFILE!.py" "%OPCODE_DIR%\plugins\!PYFILE!.py" >nul
+                if exist "%~dp0src\!PYFILE!.py" copy /Y "%~dp0src\!PYFILE!.py" "%OPCODE_DIR%\plugins\!PYFILE!.py" >nul
             ) else (
-                powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/!PYFILE!.py' -OutFile '%OPCODE_DIR%\plugins\!PYFILE!.py' -UseBasicParsing" >nul
+                powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/src/!PYFILE!.py' -OutFile '%OPCODE_DIR%\plugins\!PYFILE!.py' -UseBasicParsing" >nul
             )
         )
     )
@@ -134,14 +156,14 @@ for %%t in (%TOOLS%) do (
         if not exist "%PROJECT%\!PYFILE!.py" (
             echo   [%%t] engine (as !PYFILE!.py)...
             if "%LOCAL%"=="1" (
-                if exist "%~dp0!PYFILE!.py" (
-                    copy /Y "%~dp0!PYFILE!.py" "%PROJECT%\!PYFILE!.py" >nul
+                if exist "%~dp0src\!PYFILE!.py" (
+                    copy /Y "%~dp0src\!PYFILE!.py" "%PROJECT%\!PYFILE!.py" >nul
                     echo     OK (local)
                 ) else (
                     echo     SKIP (not found)
                 )
             ) else (
-                powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/!PYFILE!.py' -OutFile '%PROJECT%\!PYFILE!.py' -UseBasicParsing" >nul
+                powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/src/!PYFILE!.py' -OutFile '%PROJECT%\!PYFILE!.py' -UseBasicParsing" >nul
                 if exist "%PROJECT%\!PYFILE!.py" (
                     echo     OK
                 ) else (
@@ -175,5 +197,5 @@ if exist "%~dp0pyproject.toml" (
     echo   (makes graph, lint, impact, ... available system-wide)
     echo.
 )
-echo   Test: python %%PROJECT%%\test_hashline.py
+echo   Test: python %PROJECT%\tests\test_hashline.py
 echo.

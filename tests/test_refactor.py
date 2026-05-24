@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 from refactor import (
     _walk_files,
     _find_ast_references,
@@ -22,7 +22,7 @@ SAMPLE_PY = """\
 import os
 from sys import path
 
-VERSION = "0.5.1"
+VERSION = "0.5.2"
 
 def greet(name):
     print(f"Hello, {name}!")
@@ -44,7 +44,7 @@ SAMPLE_REFACTOR = """\
 import os
 from sys import path
 
-APP_VERSION = "0.5.1"
+APP_VERSION = "0.5.2"
 
 def hello(name):
     print(f"Hello, {name}!")
@@ -228,7 +228,7 @@ class TestCLI(unittest.TestCase):
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.5.1", out)
+        self.assertIn("0.5.2", out)
 
     def test_nonexistent_file(self):
         code, out = _run(["foo", "bar", "--file", "/nonexistent.py"])

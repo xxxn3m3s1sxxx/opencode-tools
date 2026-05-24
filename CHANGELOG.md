@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.2] — 2026-05-24
+
+### Changed
+- Restructured repo: `.py` engines → `src/`, `.ts` plugins → `plugins/`, tests → `tests/`
+- Updated all paths in CI, installers, package.json, pyproject.toml
+
+### Fixed
+- `pyproject.toml` now uses `package-dir = {"" = "src"}` for setuptools discovery
+- `test_regression.py` and `stress_tools.py` create temp files in OS tempdir instead of repo root
+- `.gitignore` covers `tmp*.py`, `.opencode/plugins/`, `.opencode/snapshots/`
+
 ## [0.5.1] — 2026-05-24
 
 ### Added

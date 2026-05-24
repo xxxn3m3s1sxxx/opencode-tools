@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 from calltrace import (
     _find_enclosing_function,
     _grep_occurrences,
@@ -296,7 +296,7 @@ def test_bar():
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.5.1", out)
+        self.assertIn("0.5.2", out)
 
     def test_nonexistent_symbol(self):
         code, out = _run(["--root=" + self.tmpdir, "nonexistent"])

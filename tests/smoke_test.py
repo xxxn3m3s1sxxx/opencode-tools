@@ -1,4 +1,4 @@
-﻿"""Integration test: run all tools on the codebase itself."""
+"""Integration test: run all tools on the codebase itself."""
 
 import os
 import subprocess
@@ -6,6 +6,8 @@ import sys
 import json
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(TOOLS_DIR)
+SRC_DIR = os.path.join(BASE_DIR, "src")
 PASS = 0
 FAIL = 0
 
@@ -21,12 +23,12 @@ def _run(*args):
         encoding="utf-8",
         errors="replace",
         env=env,
-        cwd=TOOLS_DIR,
+        cwd=BASE_DIR,
     )
 
 
 def _tool(name, *args):
-    return _run(os.path.join(TOOLS_DIR, f"{name}.py"), *args)
+    return _run(os.path.join(SRC_DIR, f"{name}.py"), *args)
 
 
 def check(desc, cond):
@@ -57,7 +59,7 @@ def test_impact():
     check("missing symbol returns 1", r.returncode == 1)
 
     r = _tool("impact", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("impact", "--json", "def", "format_pretty")
     check("--json output is valid", r.returncode == 0)
@@ -73,20 +75,20 @@ def test_graph():
     r = _tool("graph", "--circular")
     check("no circular deps", r.returncode == 0 and "(none found)" in r.stdout)
 
-    r = _tool("graph", "impact.py")
+    r = _tool("graph", "src/impact.py")
     check("graph file works", r.returncode == 0)
 
-    r = _tool("graph", "impact.py", "--in")
+    r = _tool("graph", "src/impact.py", "--in")
     check("--in shows importers", r.returncode == 0)
 
-    r = _tool("graph", "impact.py", "--out")
+    r = _tool("graph", "src/impact.py", "--out")
     check("--out shows imports", r.returncode == 0)
 
     r = _tool("graph", "--stats")
     check("--stats works", r.returncode == 0)
 
     r = _tool("graph", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
 
 def test_calltrace():
@@ -101,7 +103,7 @@ def test_calltrace():
     check("missing symbol shows 0 callers", r.returncode == 0 and "callers]" in r.stdout)
 
     r = _tool("calltrace", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
 
 def test_changelog():
@@ -110,7 +112,7 @@ def test_changelog():
     check("changelog -n 5 works", r.returncode == 0 and len(r.stdout) > 50)
 
     r = _tool("changelog", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("changelog", "-n", "abc")
     check("invalid -n returns 1", r.returncode == 1)
@@ -125,28 +127,28 @@ def test_refactor():
     check("missing symbol returns 1", r.returncode == 1)
 
     r = _tool("refactor", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
 
 def test_verify():
     print("\n--- verify ---")
-    r = _tool("verify", "impact.py")
-    check("file summary works", r.returncode == 0 and "impact.py" in r.stdout)
+    r = _tool("verify", "src/impact.py")
+    check("file summary works", r.returncode == 0 and "src/impact.py" in r.stdout)
 
-    r = _tool("verify", "impact.py:2")
+    r = _tool("verify", "src/impact.py:2")
     check("file:line works", r.returncode == 0 and "impact" in r.stdout)
 
-    r = _tool("verify", "impact.py", "--contains", "def format_pretty")
+    r = _tool("verify", "src/impact.py", "--contains", "def format_pretty")
     check("--contains finds text", r.returncode == 0 and "found" in r.stdout)
 
-    r = _tool("verify", "impact.py", "--not", "VERIFY_N0N3X1ST3NT")
+    r = _tool("verify", "src/impact.py", "--not", "VERIFY_N0N3X1ST3NT")
     check("--not absent text", r.returncode == 0 and "[OK]" in r.stdout)
 
-    r = _tool("verify", "nonexistent_file.py")
+    r = _tool("verify", "tests/nonexistent_file.py")
     check("missing file returns 1", r.returncode == 1)
 
     r = _tool("verify", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
 
 def test_search():
@@ -159,7 +161,7 @@ def test_search():
     except json.JSONDecodeError:
         check("search returns results", False)
 
-    r = _tool("search", "--json", "XYZZY_N0N3X1ST3NT_PLUGH", "impact.py")
+    r = _tool("search", "--json", "XYZZY_N0N3X1ST3NT_PLUGH", "src/impact.py")
     check("no match returns empty", r.returncode == 0)
     try:
         data = json.loads(r.stdout)
@@ -168,13 +170,13 @@ def test_search():
         check("empty results is valid", False)
 
     r = _tool("search", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
 
 def test_lint():
     print("\n--- lint ---")
     r = _tool("lint", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("lint", "--help")
     check("--help works", r.returncode == 0)
@@ -183,9 +185,9 @@ def test_lint():
 def test_hashline():
     print("\n--- hashline ---")
     r = _tool("hashline", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
-    r = _tool("hashline", "check", "impact.py")
+    r = _tool("hashline", "check", "src/impact.py")
     check("hashline check works", r.returncode == 0)
 
 
@@ -195,7 +197,7 @@ def test_health():
     check("health quick shows metrics", r.returncode == 0 and "files:" in r.stdout)
 
     r = _tool("health", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("health", "--check", "--quick")
     check("--check mode works", r.returncode in (0, 1))
@@ -207,7 +209,7 @@ def test_snapshot():
     check("snapshot shows git info", r.returncode == 0 and "Git" in r.stdout)
 
     r = _tool("snapshot", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("snapshot")
     check("snapshot saves file", r.returncode == 0 and "Snapshot saved" in r.stdout)
@@ -230,7 +232,7 @@ def test_todo():
         check("todo --json is valid", False)
 
     r = _tool("todo", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
 
 def test_tags():
@@ -245,7 +247,7 @@ def test_tags():
     check("tags missing symbol returns 1", r.returncode == 1)
 
     r = _tool("tags", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
 
 def test_check():
@@ -254,7 +256,7 @@ def test_check():
     check("check quick passes", r.returncode == 0 and "All checks passed" in r.stdout)
 
     r = _tool("check", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("check", "-h")
     check("--help shows usage", r.returncode == 0 and "lint" in r.stdout.lower())
@@ -267,7 +269,7 @@ def test_audit():
     check("audit finds secrets in self-test", "Findings:" in r.stdout)
 
     r = _tool("audit", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("audit", "-h")
     check("--help shows usage", r.returncode == 0 and "scanner" in r.stdout.lower())
@@ -291,7 +293,7 @@ def test_fmt():
     check("fmt runs (ruff available)", r.returncode in (0, 1))
 
     r = _tool("fmt", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("fmt", "-h")
     check("--help shows usage", r.returncode == 0 and "format" in r.stdout.lower())
@@ -303,7 +305,7 @@ def test_churn():
     check("churn top 5 works", r.returncode == 0 and "x" in r.stdout)
 
     r = _tool("churn", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("churn", "-h")
     check("--help shows usage", r.returncode == 0 and "churn" in r.stdout.lower())
@@ -315,7 +317,7 @@ def test_report():
     check("report quick works", r.returncode in (0, 1) and "Health Report" in r.stdout)
 
     r = _tool("report", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("report", "-h")
     check("--help shows usage", r.returncode == 0 and "report" in r.stdout.lower())
@@ -327,15 +329,15 @@ def test_ghost():
     check("ghost scans python", r.returncode == 0)
 
     r = _tool("ghost", "--version")
-    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+    check("--version shows 0.5.0", "0.5.2" in r.stdout)
 
     r = _tool("ghost", "-h")
     check("--help shows usage", r.returncode == 0 and "dead" in r.stdout.lower())
 
 
 def main():
-    print(f"Smoke test: opencode-tools v0.5.1 self-test")
-    print(f"Tools dir: {TOOLS_DIR}")
+    print(f"Smoke test: opencode-tools v0.5.2 self-test")
+    print(f"Tools dir: {SRC_DIR}")
     print(f"Python: {sys.executable}")
 
     tests = [

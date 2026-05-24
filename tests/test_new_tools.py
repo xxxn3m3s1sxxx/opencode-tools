@@ -9,17 +9,19 @@ import tempfile
 import unittest
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(TOOLS_DIR)
+SRC_DIR = os.path.join(BASE_DIR, "src")
 
 
 def _run(tool: str, *args: str) -> subprocess.CompletedProcess[str]:
-    py = os.path.join(TOOLS_DIR, f"{tool}.py")
+    py = os.path.join(SRC_DIR, f"{tool}.py")
     return subprocess.run(
         [sys.executable, py, *args],
         capture_output=True,
         text=True,
         encoding="utf-8",
         errors="replace",
-        cwd=TOOLS_DIR,
+        cwd=SRC_DIR,
         timeout=60,
     )
 
@@ -27,7 +29,7 @@ def _run(tool: str, *args: str) -> subprocess.CompletedProcess[str]:
 class TestCheck(unittest.TestCase):
     def test_version(self):
         r = _run("check", "--version")
-        self.assertIn("0.5.1", r.stdout)
+        self.assertIn("0.5.2", r.stdout)
 
     def test_help(self):
         r = _run("check", "-h")
@@ -43,7 +45,7 @@ class TestCheck(unittest.TestCase):
 class TestAudit(unittest.TestCase):
     def test_version(self):
         r = _run("audit", "--version")
-        self.assertIn("0.5.1", r.stdout)
+        self.assertIn("0.5.2", r.stdout)
 
     def test_help(self):
         r = _run("audit", "-h")
@@ -77,7 +79,7 @@ class TestAudit(unittest.TestCase):
 class TestFmt(unittest.TestCase):
     def test_version(self):
         r = _run("fmt", "--version")
-        self.assertIn("0.5.1", r.stdout)
+        self.assertIn("0.5.2", r.stdout)
 
     def test_help(self):
         r = _run("fmt", "-h")
@@ -104,7 +106,7 @@ class TestFmt(unittest.TestCase):
 class TestChurn(unittest.TestCase):
     def test_version(self):
         r = _run("churn", "--version")
-        self.assertIn("0.5.1", r.stdout)
+        self.assertIn("0.5.2", r.stdout)
 
     def test_help(self):
         r = _run("churn", "-h")
@@ -138,7 +140,7 @@ class TestChurn(unittest.TestCase):
 class TestReport(unittest.TestCase):
     def test_version(self):
         r = _run("report", "--version")
-        self.assertIn("0.5.1", r.stdout)
+        self.assertIn("0.5.2", r.stdout)
 
     def test_help(self):
         r = _run("report", "-h")
@@ -174,7 +176,7 @@ class TestReport(unittest.TestCase):
 class TestGhost(unittest.TestCase):
     def test_version(self):
         r = _run("ghost", "--version")
-        self.assertIn("0.5.1", r.stdout)
+        self.assertIn("0.5.2", r.stdout)
 
     def test_help(self):
         r = _run("ghost", "-h")
@@ -193,7 +195,7 @@ class TestGhost(unittest.TestCase):
             self.assertIn("No dead code", r.stdout)
 
     def test_json(self):
-        r = _run("ghost", "--json", "--root", TOOLS_DIR)
+        r = _run("ghost", "--json", "--root", SRC_DIR)
         try:
             data = json.loads(r.stdout)
             self.assertIn("total", data)

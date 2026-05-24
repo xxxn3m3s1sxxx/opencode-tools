@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 
-TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
 except (AttributeError, OSError):
@@ -84,23 +84,23 @@ def _ensure_local_files(opcode_dir, proj_dir):
     import shutil
 
     for fn in EXPECTED_TS:
-        src = os.path.join(TOOLS_DIR, fn)
+        src = os.path.join(BASE_DIR, "plugins", fn)
         if os.path.exists(src):
             shutil.copy2(src, os.path.join(opcode_dir, "plugins", fn))
             os.makedirs(os.path.join(proj_dir, ".opencode", "plugins"), exist_ok=True)
             shutil.copy2(src, os.path.join(proj_dir, ".opencode", "plugins", fn))
     for fn in EXPECTED_PY_ENGINES:
-        src = os.path.join(TOOLS_DIR, fn)
+        src = os.path.join(BASE_DIR, "src", fn)
         if os.path.exists(src):
             shutil.copy2(src, os.path.join(opcode_dir, "plugins", fn))
             shutil.copy2(src, os.path.join(proj_dir, fn))
     # also calltrace.py (renamed from trace.py)
-    src = os.path.join(TOOLS_DIR, "calltrace.py")
+    src = os.path.join(BASE_DIR, "src", "calltrace.py")
     if os.path.exists(src):
         shutil.copy2(src, os.path.join(opcode_dir, "plugins", "calltrace.py"))
         shutil.copy2(src, os.path.join(proj_dir, "calltrace.py"))
     # common.py (shared dependency)
-    src = os.path.join(TOOLS_DIR, "common.py")
+    src = os.path.join(BASE_DIR, "src", "common.py")
     if os.path.exists(src):
         shutil.copy2(src, os.path.join(opcode_dir, "plugins", "common.py"))
         shutil.copy2(src, os.path.join(proj_dir, ".opencode", "plugins", "common.py"))
@@ -120,14 +120,14 @@ def test_bat_local_mode():
 
         wrapper = os.path.join(tmp, "_run.bat")
         with open(wrapper, "w") as f:
-            f.write(f'@echo off\ncall "{os.path.join(TOOLS_DIR, "install.bat")}" %*\n')
+            f.write(f'@echo off\ncall "{os.path.join(BASE_DIR, "install.bat")}" %*\n')
 
         subprocess.run(
             [wrapper, proj_dir, "/local"],
             capture_output=True,
             text=True,
             env=env,
-            cwd=TOOLS_DIR,
+            cwd=BASE_DIR,
             encoding="utf-8",
             errors="replace",
             timeout=60,
@@ -149,7 +149,7 @@ def test_bat_local_copies_plugins():
 
         wrapper = os.path.join(tmp, "_run.bat")
         with open(wrapper, "w") as f:
-            f.write(f'@echo off\ncall "{os.path.join(TOOLS_DIR, "install.bat")}" %*\n')
+            f.write(f'@echo off\ncall "{os.path.join(BASE_DIR, "install.bat")}" %*\n')
             f.write("echo EXIT_CODE=%ERRORLEVEL%\n")
 
         subprocess.run(
@@ -157,7 +157,7 @@ def test_bat_local_copies_plugins():
             capture_output=True,
             text=True,
             env=env,
-            cwd=TOOLS_DIR,
+            cwd=BASE_DIR,
             encoding="utf-8",
             errors="replace",
             timeout=60,
@@ -207,7 +207,7 @@ def test_ps1_offline_mode():
                 "powershell",
                 "-NoProfile",
                 "-File",
-                os.path.join(TOOLS_DIR, "install.ps1"),
+                os.path.join(BASE_DIR, "install.ps1"),
                 "-Project",
                 proj_dir,
                 "-Offline",
@@ -215,7 +215,7 @@ def test_ps1_offline_mode():
             capture_output=True,
             text=True,
             env=env,
-            cwd=TOOLS_DIR,
+            cwd=BASE_DIR,
             encoding="utf-8",
             errors="replace",
             timeout=60,
@@ -250,14 +250,14 @@ def test_bat_config_dir_precedence():
 
         wrapper = os.path.join(tmp, "_run.bat")
         with open(wrapper, "w") as f:
-            f.write(f'@echo off\ncall "{os.path.join(TOOLS_DIR, "install.bat")}" %*\n')
+            f.write(f'@echo off\ncall "{os.path.join(BASE_DIR, "install.bat")}" %*\n')
 
         subprocess.run(
             [wrapper, proj_dir, "/local"],
             capture_output=True,
             text=True,
             env=env,
-            cwd=TOOLS_DIR,
+            cwd=BASE_DIR,
             encoding="utf-8",
             errors="replace",
             timeout=60,
@@ -285,7 +285,7 @@ def test_ps1_config_dir_precedence():
                 "powershell",
                 "-NoProfile",
                 "-File",
-                os.path.join(TOOLS_DIR, "install.ps1"),
+                os.path.join(BASE_DIR, "install.ps1"),
                 "-Project",
                 proj_dir,
                 "-Offline",
@@ -293,7 +293,7 @@ def test_ps1_config_dir_precedence():
             capture_output=True,
             text=True,
             env=env,
-            cwd=TOOLS_DIR,
+            cwd=BASE_DIR,
             encoding="utf-8",
             errors="replace",
             timeout=60,
@@ -321,14 +321,14 @@ def test_bat_skip_existing_engine():
 
         wrapper = os.path.join(tmp, "_run.bat")
         with open(wrapper, "w") as f:
-            f.write(f'@echo off\ncall "{os.path.join(TOOLS_DIR, "install.bat")}" %*\n')
+            f.write(f'@echo off\ncall "{os.path.join(BASE_DIR, "install.bat")}" %*\n')
 
         subprocess.run(
             [wrapper, proj_dir, "/local"],
             capture_output=True,
             text=True,
             env=env,
-            cwd=TOOLS_DIR,
+            cwd=BASE_DIR,
             encoding="utf-8",
             errors="replace",
             timeout=60,

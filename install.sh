@@ -15,7 +15,8 @@ TOOLS="utils hashline impact verify trace rename graph changelog search lint ref
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL=false
 for arg in "$@"; do
-  [ "$arg" = "--local" ] || [ "$arg" = "-local" ] && LOCAL=true && break
+  [ "$arg" = "--local" ] || [ "$arg" = "-local" ] && LOCAL=true
+  [ "$arg" = "--uninstall" ] || [ "$arg" = "-uninstall" ] && { echo ""; echo "  Uninstalling..."; rm -rf "$PLUGIN_DIR"; rm -rf "$PROJECT/.opencode/plugins"; for t in $TOOLS; do [ "$t" = "utils" ] && continue; pyf="$t"; [ "$t" = "trace" ] && pyf="calltrace"; rm -f "$PROJECT/$pyf.py"; done; echo "  Uninstall complete."; exit 0; }
 done
 OPCODE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 PLUGIN_DIR="$OPCODE_DIR/plugins"
@@ -40,15 +41,15 @@ echo ""
 mkdir -p "$PLUGIN_DIR"
 
 # common.py (shared dependency)
-if $LOCAL && [ -f "$SCRIPT_DIR/common.py" ]; then
-  cp "$SCRIPT_DIR/common.py" "$PLUGIN_DIR/common.py"
+if $LOCAL && [ -f "$SCRIPT_DIR/src/common.py" ]; then
+  cp "$SCRIPT_DIR/src/common.py" "$PLUGIN_DIR/common.py"
   echo "  [common] common.py -> $PLUGIN_DIR/common.py (local)"
-elif [ -f "common.py" ]; then
-  cp "common.py" "$PLUGIN_DIR/common.py"
+elif [ -f "src/common.py" ]; then
+  cp "src/common.py" "$PLUGIN_DIR/common.py"
   echo "  [common] common.py -> $PLUGIN_DIR/common.py (local)"
 else
   echo "  [common] common.py -> downloading..."
-  curl -fsSL "$REPO/common.py" -o "$PLUGIN_DIR/common.py" || echo "  [WARN] common.py download failed"
+  curl -fsSL "$REPO/src/common.py" -o "$PLUGIN_DIR/common.py" || echo "  [WARN] common.py download failed"
 fi
 
 # Install plugins (.ts)
@@ -57,15 +58,15 @@ for tool in $TOOLS; do
   [ "$tool" = "trace" ] && tsfile="calltrace"
   src="${tsfile}.ts"
   dst="$PLUGIN_DIR/$src"
-  if $LOCAL && [ -f "$SCRIPT_DIR/$src" ]; then
-    cp "$SCRIPT_DIR/$src" "$dst"
+  if $LOCAL && [ -f "$SCRIPT_DIR/plugins/$src" ]; then
+    cp "$SCRIPT_DIR/plugins/$src" "$dst"
     echo "  [plugin] $tool -> $dst (local)"
-  elif [ -f "$src" ]; then
-    cp "$src" "$dst"
+  elif [ -f "plugins/$src" ]; then
+    cp "plugins/$src" "$dst"
     echo "  [plugin] $tool -> $dst (local)"
   else
     echo "  [plugin] $tool -> downloading..."
-    curl -fsSL "$REPO/$src" -o "$dst" || echo "  [WARN] $tool download failed"
+    curl -fsSL "$REPO/plugins/$src" -o "$dst" || echo "  [WARN] $tool download failed"
   fi
 done
 
@@ -73,12 +74,12 @@ done
 LOCAL_PLUGIN_DIR="$PROJECT/.opencode/plugins"
 mkdir -p "$LOCAL_PLUGIN_DIR"
 if [ ! -f "$LOCAL_PLUGIN_DIR/common.py" ]; then
-  if $LOCAL && [ -f "$SCRIPT_DIR/common.py" ]; then
-    cp "$SCRIPT_DIR/common.py" "$LOCAL_PLUGIN_DIR/common.py"
-  elif [ -f "common.py" ]; then
-    cp "common.py" "$LOCAL_PLUGIN_DIR/common.py"
+  if $LOCAL && [ -f "$SCRIPT_DIR/src/common.py" ]; then
+    cp "$SCRIPT_DIR/src/common.py" "$LOCAL_PLUGIN_DIR/common.py"
+  elif [ -f "src/common.py" ]; then
+    cp "src/common.py" "$LOCAL_PLUGIN_DIR/common.py"
   else
-    curl -fsSL "$REPO/common.py" -o "$LOCAL_PLUGIN_DIR/common.py" || true
+    curl -fsSL "$REPO/src/common.py" -o "$LOCAL_PLUGIN_DIR/common.py" || true
   fi
 fi
 for tool in $TOOLS; do
@@ -87,12 +88,12 @@ for tool in $TOOLS; do
   src="${tsfile}.ts"
   dst="$LOCAL_PLUGIN_DIR/$src"
   if [ ! -f "$dst" ]; then
-    if $LOCAL && [ -f "$SCRIPT_DIR/$src" ]; then
-      cp "$SCRIPT_DIR/$src" "$dst"
-    elif [ -f "$src" ]; then
-      cp "$src" "$dst"
+    if $LOCAL && [ -f "$SCRIPT_DIR/plugins/$src" ]; then
+      cp "$SCRIPT_DIR/plugins/$src" "$dst"
+    elif [ -f "plugins/$src" ]; then
+      cp "plugins/$src" "$dst"
     else
-      curl -fsSL "$REPO/$src" -o "$dst" || echo "  [WARN] $tool download failed"
+      curl -fsSL "$REPO/plugins/$src" -o "$dst" || echo "  [WARN] $tool download failed"
     fi
   fi
 done
@@ -104,12 +105,12 @@ for tool in $TOOLS; do
   [ "$tool" = "trace" ] && pyfile="calltrace"
   src="${pyfile}.py"
   dst="$PLUGIN_DIR/$src"
-  if $LOCAL && [ -f "$SCRIPT_DIR/$src" ]; then
-    cp "$SCRIPT_DIR/$src" "$dst"
-  elif [ -f "$src" ]; then
-    cp "$src" "$dst"
+  if $LOCAL && [ -f "$SCRIPT_DIR/src/$src" ]; then
+    cp "$SCRIPT_DIR/src/$src" "$dst"
+  elif [ -f "src/$src" ]; then
+    cp "src/$src" "$dst"
   elif [ ! -f "$dst" ]; then
-    curl -fsSL "$REPO/$src" -o "$dst" || echo "  [WARN] $tool download failed"
+    curl -fsSL "$REPO/src/$src" -o "$dst" || echo "  [WARN] $tool download failed"
   fi
 done
 
@@ -120,15 +121,15 @@ for tool in $TOOLS; do
   [ "$tool" = "trace" ] && pyfile="calltrace"
   src="${pyfile}.py"
   dst="$PROJECT/$src"
-  if $LOCAL && [ -f "$SCRIPT_DIR/$src" ]; then
-    cp "$SCRIPT_DIR/$src" "$dst"
+  if $LOCAL && [ -f "$SCRIPT_DIR/src/$src" ]; then
+    cp "$SCRIPT_DIR/src/$src" "$dst"
     echo "  [engine] $tool -> $dst (local)"
-  elif [ -f "$src" ]; then
-    cp "$src" "$dst"
+  elif [ -f "src/$src" ]; then
+    cp "src/$src" "$dst"
     echo "  [engine] $tool -> $dst (local)"
   elif [ ! -f "$dst" ]; then
     echo "  [engine] $tool -> downloading..."
-    curl -fsSL "$REPO/$src" -o "$dst" || echo "  [WARN] $tool download failed"
+    curl -fsSL "$REPO/src/$src" -o "$dst" || echo "  [WARN] $tool download failed"
   else
     echo "  [engine] $tool -> $dst (exists)"
   fi

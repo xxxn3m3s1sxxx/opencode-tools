@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 from verify import (
     _read_file,
     _checksum,
@@ -331,7 +331,7 @@ class TestCLI(unittest.TestCase):
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.5.1", out)
+        self.assertIn("0.5.2", out)
 
     def test_diff(self):
         code, out = _run([self.path, "--diff"])

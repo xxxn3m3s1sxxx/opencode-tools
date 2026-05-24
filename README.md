@@ -198,40 +198,49 @@ python smoke_test.py       # Smoke test all tools
 
 ```
 opencode-tools/
-├── utils.ts              # Shared utilities
-├── hashline.py/.ts       # Hash-anchored editing (v0.4.0)
-├── impact.py/.ts         # Impact analysis (v0.4.0)
-├── verify.py/.ts         # Post-edit verification (v0.4.0)
-├── calltrace.py/.ts      # Recursive call chain (v0.4.0)
-├── rename.py/.ts         # Word-boundary rename (v0.4.0)
-├── graph.py/.ts          # Dependency graph (v0.4.0)
-├── changelog.py/.ts      # Formatted git log (v0.4.0)
-├── search.py/.ts         # Rich grep (v0.4.0)
-├── lint.py/.ts           # Lint runner (v0.4.0)
-├── refactor.py/.ts       # AST-based rename (v0.4.0)
-├── health.py             # Health summary (v0.5.0)
-├── snapshot.py           # Workspace snapshot (v0.5.0)
-├── todo.py               # TODO marker scanner (v0.5.0)
-├── tags.py               # Symbol indexer (v0.5.0)
-├── check.py              # Pre-commit gate (v0.5.1)
-├── audit.py              # Secret scanner (v0.5.1)
-├── fmt.py                # Format runner (v0.5.1)
-├── churn.py              # Git churn analysis (v0.5.1)
-├── report.py             # Combined report (v0.5.1)
-├── ghost.py              # Dead code finder (v0.5.1)
-├── common.py             # Shared utilities (20 tools)
-├── test_*.py             # Test suites
-├── deeper_tests.py       # 27 deep edge tests
-├── regression_tests.py   # 22 regression tests
-├── stress_test.py        # 39 stress tests
-├── smoke_test.py         # Self-test all 20 tools (74 checks)
-├── install.sh            # Linux/macOS installer
-├── install.ps1           # Windows PowerShell installer
-├── install.bat           # Windows cmd installer
+├── src/                 # 21 .py engines
+│   ├── common.py        # Shared utilities (20 tools)
+│   ├── hashline.py      # Hash-anchored editing
+│   ├── impact.py        # Impact analysis
+│   ├── verify.py        # Post-edit verification
+│   ├── calltrace.py     # Recursive call chain
+│   ├── rename.py        # Word-boundary rename
+│   ├── graph.py         # Dependency graph
+│   ├── changelog.py     # Formatted git log
+│   ├── search.py        # Rich grep
+│   ├── lint.py          # Lint runner
+│   ├── refactor.py      # AST-based rename
+│   ├── health.py        # Health summary
+│   ├── snapshot.py      # Workspace snapshot
+│   ├── todo.py          # TODO marker scanner
+│   ├── tags.py          # Symbol indexer
+│   ├── check.py         # Pre-commit gate
+│   ├── audit.py         # Secret scanner
+│   ├── fmt.py           # Format runner
+│   ├── churn.py         # Git churn analysis
+│   ├── report.py        # Combined report
+│   └── ghost.py         # Dead code finder
+├── plugins/             # 21 .ts OpenCode plugin wrappers
+│   ├── utils.ts
+│   ├── hashline.ts
+│   ├── impact.ts
+│   └── ...
+├── tests/               # 17 test suites
+│   ├── test_hashline.py
+│   ├── test_impact.py
+│   ├── ...
+│   ├── smoke_test.py
+│   ├── stress_tools.py
+│   └── deeper_tests.py
+├── install.sh           # Linux/macOS installer
+├── install.ps1          # Windows PowerShell installer
+├── install.bat          # Windows cmd installer
 ├── .github/workflows/ci.yml
-├── pyproject.toml        # Python packaging — 20 console_scripts
-├── package.json          # TS plugin metadata — 20 entries
-├── LICENSE               # MIT
+├── pyproject.toml       # Python packaging — 20 console_scripts
+├── package.json         # TS plugin metadata — 20 entries
+├── CHANGELOG.md
+├── QUALITY.md
+├── LICENSE              # MIT
 └── README.md
 ```
 

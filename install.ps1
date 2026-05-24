@@ -10,7 +10,8 @@
 
 param(
     [string]$Project = "",
-    [switch]$Offline = $false
+    [switch]$Offline = $false,
+    [switch]$Uninstall = $false
 )
 
 $RepoBase = "https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
@@ -75,31 +76,54 @@ function Install-File($src, $dest, $name) {
     return $false
 }
 
+# --- Uninstall ---
+if ($Uninstall) {
+    Write-Host "  Uninstalling...`n"
+    $Dirs = @("$OpencodeDir\plugins", "$Project\.opencode\plugins")
+    foreach ($d in $Dirs) {
+        if (Test-Path $d) {
+            Remove-Item -LiteralPath $d -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Step "Removed $d"
+        }
+    }
+    # Engine files (project root)
+    foreach ($tool in $Tools) {
+        $pyfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
+        $ep = "$Project\$pyfile.py"
+        if (Test-Path $ep) {
+            Remove-Item -LiteralPath $ep -Force -ErrorAction SilentlyContinue
+            Write-Step "Removed $ep"
+        }
+    }
+    Write-Host "`n  Uninstall complete.`n"
+    return
+}
+
 # --- Install plugins ---
 $PluginDir = "$OpencodeDir\plugins"
 if (-not (Test-Path $PluginDir)) { New-Item -ItemType Directory -Path $PluginDir -Force | Out-Null }
 
 # utils.ts (shared)
 Write-Host "  [utils] plugin..."
-Install-File "utils.ts" "$PluginDir\utils.ts" "utils.ts"
+Install-File "plugins/utils.ts" "$PluginDir\utils.ts" "utils.ts"
 
 # common.py (shared dependency)
 Write-Host "  [common] plugin..."
-Install-File "common.py" "$PluginDir\common.py" "common.py"
+Install-File "src/common.py" "$PluginDir\common.py" "common.py"
 
 foreach ($tool in $Tools) {
-    Install-File "$tsfile.ts" "$PluginDir\$tsfile.ts" "$tsfile.ts"
+    Install-File "plugins/$tsfile.ts" "$PluginDir\$tsfile.ts" "$tsfile.ts"
 }
 
 # --- Install to .opencode/plugins (project-local, auto-discovered) ---
 $LocalPluginDir = "$Project\.opencode\plugins"
 if (-not (Test-Path $LocalPluginDir)) { New-Item -ItemType Directory -Path $LocalPluginDir -Force | Out-Null }
-Install-File "utils.ts" "$LocalPluginDir\utils.ts" "utils.ts (.opencode)"
+Install-File "plugins/utils.ts" "$LocalPluginDir\utils.ts" "utils.ts (.opencode)"
 foreach ($tool in $Tools) {
     $tsfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
     $LocalTs = "$LocalPluginDir\$tsfile.ts"
     if (-not (Test-Path $LocalTs)) {
-        Install-File "$tsfile.ts" "$LocalTs" "$tsfile.ts (.opencode)"
+        Install-File "plugins/$tsfile.ts" "$LocalTs" "$tsfile.ts (.opencode)"
     }
 }
 
@@ -108,7 +132,7 @@ foreach ($tool in $Tools) {
     $pyfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
     $PluginPy = "$PluginDir\$pyfile.py"
     if (-not (Test-Path $PluginPy)) {
-        Install-File "$pyfile.py" "$PluginPy" "$pyfile.py (plugin)"
+        Install-File "src/$pyfile.py" "$PluginPy" "$pyfile.py (plugin)"
     }
 }
 
@@ -120,7 +144,7 @@ foreach ($tool in $Tools) {
         Write-Skip "  [$tool] engine -> $EngineDest (exists)"
     } else {
         Write-Host "  [$tool] engine (as $pyfile.py)..."
-        Install-File "$pyfile.py" "$EngineDest" "$pyfile.py"
+        Install-File "src/$pyfile.py" "$EngineDest" "$pyfile.py"
         if (-not (Test-Path $EngineDest)) {
             Write-Err "  [$tool] engine INSTALL FAILED"
         }

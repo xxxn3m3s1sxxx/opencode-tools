@@ -7,7 +7,7 @@ import sys
 from typing import Set, Optional
 
 
-VERSION: str = "0.5.1"
+VERSION: str = "0.5.2"
 
 EXCLUDE_DIRS: Set[str] = {
     ".git",

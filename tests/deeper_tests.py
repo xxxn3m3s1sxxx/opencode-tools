@@ -12,7 +12,7 @@ try:
 except (AttributeError, OSError):
     pass
 
-HL = os.path.join(os.path.dirname(__file__), "..", "hashline.py")
+HL = os.path.join(os.path.dirname(__file__), "..", "src", "hashline.py")
 if not os.path.exists(HL):
     HL = os.path.join(os.path.dirname(__file__), "hashline.py")
 P = sys.executable

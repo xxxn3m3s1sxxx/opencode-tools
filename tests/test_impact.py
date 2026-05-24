@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 # Ensure impact.py is importable
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 from impact import (
     ImpactAnalyzer,
     _py_find_definitions,
@@ -566,7 +566,7 @@ class TestCLI(unittest.TestCase):
     def test_version(self):
         code, out = self._run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.5.1", out)
+        self.assertIn("0.5.2", out)
 
 
 class TestEdgeCases(unittest.TestCase):

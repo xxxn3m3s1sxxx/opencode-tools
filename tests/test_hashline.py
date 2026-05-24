@@ -16,7 +16,9 @@ import subprocess
 import sys
 import tempfile
 
-HASHLINE_PY = os.path.join(os.path.dirname(__file__), "hashline.py")
+HASHLINE_PY = os.path.join(os.path.dirname(__file__), "..", "src", "hashline.py")
+if not os.path.exists(HASHLINE_PY):
+    HASHLINE_PY = os.path.join(os.path.dirname(__file__), "hashline.py")
 PASS = 0
 FAIL = 0
 SKIP = 0

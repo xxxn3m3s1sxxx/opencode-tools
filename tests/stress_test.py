@@ -12,11 +12,11 @@ try:
 except (AttributeError, OSError):
     pass
 
-HL = os.path.join(os.path.dirname(__file__), "..", "hashline.py")
+HL = os.path.join(os.path.dirname(__file__), "..", "src", "hashline.py")
 if not os.path.exists(HL):
     HL = os.path.join(os.path.dirname(__file__), "hashline.py")
     if not os.path.exists(HL):
-        HL = "hashline.py"
+        raise SystemExit("hashline.py not found — run from repo root")
 
 P = sys.executable
 failed = 0
@@ -170,7 +170,7 @@ check("unicode path content", "UNICODE" in content, repr(content[:200]))
 os.unlink(up)
 
 # === 12. Hash collision test ===
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 from hashline import compute_line_hash
 
 target = "collision_target"

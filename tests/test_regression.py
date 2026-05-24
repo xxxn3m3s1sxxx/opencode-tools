@@ -11,9 +11,11 @@ import subprocess
 import tempfile
 import json
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(TOOLS_DIR)
+SRC_DIR = os.path.join(BASE_DIR, "src")
 PASS = 0
 FAIL = 0
 
@@ -27,7 +29,7 @@ def _run(*args, input_text=None):
         capture_output=True,
         text=True,
         input=input_text,
-        cwd=TOOLS_DIR,
+        cwd=BASE_DIR,
         env=env,
         encoding="utf-8",
         errors="replace",
@@ -35,7 +37,7 @@ def _run(*args, input_text=None):
 
 
 def _run_tool(name, *args):
-    return _run(os.path.join(TOOLS_DIR, f"{name}.py"), *args)
+    return _run(os.path.join(SRC_DIR, f"{name}.py"), *args)
 
 
 def check(desc, cond):
@@ -107,14 +109,14 @@ def test_search_single_file():
 
 # 5. search.py:100 — ReDoS guard
 def test_search_redos():
-    r = _run_tool("search", "x" * 2001, os.path.join(TOOLS_DIR, "verify.py"))
+    r = _run_tool("search", "x" * 2001, os.path.join(SRC_DIR, "verify.py"))
     check("search ReDoS guard rejects long pattern", r.returncode != 0)
     check("search ReDoS guard message", "too long" in r.stderr.lower())
 
 
 # 6. search.py:161 — relpath fix (dirname→path)
 def test_search_relpath():
-    subdir = os.path.join(TOOLS_DIR, "__regression_test_subdir__")
+    subdir = os.path.join(BASE_DIR, "__regression_test_subdir__")
     os.makedirs(subdir, exist_ok=True)
     tmp = os.path.join(subdir, "_testfile.py")
     try:
@@ -139,7 +141,7 @@ def test_changelog_int_guard():
 
 # 8. verify.py:324 — int() guard
 def test_verify_int_guard():
-    r = _run_tool("verify", os.path.join(TOOLS_DIR, "verify.py"), "--context", "abc")
+    r = _run_tool("verify", os.path.join(SRC_DIR, "verify.py"), "--context", "abc")
     check("verify --context abc non-zero", r.returncode != 0)
 
 
@@ -151,13 +153,13 @@ def test_calltrace_int_guard():
 
 # 10. search.py:170,172 — int() guard
 def test_search_int_guard():
-    r = _run_tool("search", "test", TOOLS_DIR, "--context=abc")
+    r = _run_tool("search", "test", SRC_DIR, "--context=abc")
     check("search --context=abc non-zero", r.returncode != 0)
 
 
 # 11. verify.py:302,336 — --line flag (was dead var)
 def test_verify_line_flag():
-    r = _run_tool("verify", os.path.join(TOOLS_DIR, "verify.py"), "--line", "5")
+    r = _run_tool("verify", os.path.join(SRC_DIR, "verify.py"), "--line", "5")
     check("verify --line 5 returns 0", r.returncode == 0)
 
 
@@ -179,7 +181,7 @@ def test_lint_injection():
 
 # 14. hashline.py:143 — uppercase anchor warning (no crash)
 def test_hashline_uppercase():
-    r = _run_tool("hashline", "read", "verify.py")
+    r = _run_tool("hashline", "read", "src/verify.py")
     check("hashline uppercase anchor OK", r.returncode == 0)
 
 
@@ -226,7 +228,7 @@ def test_graph_diamond():
 
 # 17. impact.py:288 — TS empty-name guard
 def test_impact_ts_empty_def():
-    r = _run_tool("impact", os.path.join(TOOLS_DIR, "calltrace.ts"), "--json")
+    r = _run_tool("impact", os.path.join(BASE_DIR, "plugins", "calltrace.ts"), "--json")
     check("impact TS file no crash", r.returncode in (0, 1))
 
 

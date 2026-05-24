@@ -11,9 +11,11 @@ import subprocess
 import sys
 import tempfile
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(TOOLS_DIR)
+SRC_DIR = os.path.join(BASE_DIR, "src")
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except (AttributeError, OSError):
@@ -29,7 +31,7 @@ def _run(*args, cwd=None, timeout=120):
         [P] + list(args),
         capture_output=True,
         text=True,
-        cwd=cwd or TOOLS_DIR,
+        cwd=cwd or BASE_DIR,
         encoding="utf-8",
         errors="replace",
         timeout=timeout,
@@ -37,7 +39,7 @@ def _run(*args, cwd=None, timeout=120):
 
 
 def _rt(name, *args, **kw):
-    return _run(os.path.join(TOOLS_DIR, f"{name}.py"), *args, **kw)
+    return _run(os.path.join(SRC_DIR, f"{name}.py"), *args, **kw)
 
 
 def _tmp(src="", suffix=".py", binary=False):
@@ -198,7 +200,7 @@ def stress_search_10k_matches():
 
 
 def stress_search_special_path():
-    sp = os.path.join(TOOLS_DIR, "weird [path] (test) {money}.py")
+    sp = os.path.join(BASE_DIR, "weird [path] (test) {money}.py")
     try:
         with open(sp, "w", encoding="utf-8") as f:
             f.write("weird_path_test_var = 1\n")
@@ -248,7 +250,7 @@ def stress_verify_binary_checksum():
 
 
 def stress_verify_huge_context():
-    r = _rt("verify", os.path.join(TOOLS_DIR, "verify.py"), "--line", "100", "--context", "500")
+    r = _rt("verify", os.path.join(SRC_DIR, "verify.py"), "--line", "100", "--context", "500")
     check("verify huge context no crash", r.returncode == 0)
 
 

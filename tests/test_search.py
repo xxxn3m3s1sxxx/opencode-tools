@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src'))
 from search import main, _match_glob
 
 
@@ -134,7 +134,7 @@ class TestSearch(unittest.TestCase):
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.5.1", out)
+        self.assertIn("0.5.2", out)
 
     def test_unknown_flag(self):
         code, out = _run(["--bogus"])
