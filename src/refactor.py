@@ -20,7 +20,7 @@ import re
 import sys
 from typing import Any
 
-from common import VERSION, PY_SOURCE_EXTS, TS_SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
+from common import VERSION, PY_SOURCE_EXTS, TS_SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr, _safe_relpath
 
 reconfigure_stdout_stderr()
 
@@ -309,7 +309,7 @@ def format_results(occurs: list[dict], root: str) -> str:
     lines_out = []
     for item in occurs:
         kind = item["kind"]
-        path = os.path.relpath(item["file"], root) if root else item["file"]
+        path = _safe_relpath(item["file"], root) if root else item["file"]
         lines_out.append(f"  {path}:{item['lineno']}:{item['col_offset']}  {kind}")
     return "\n".join(lines_out)
 
@@ -404,7 +404,7 @@ def main() -> int:
         if not refs:
             continue
 
-        relpath = os.path.relpath(fp, root) if os.path.isdir(root) else fp
+        relpath = _safe_relpath(fp, root) if os.path.isdir(root) else fp
         for r in refs:
             r["file"] = fp
             all_occurs.append(r)
@@ -431,7 +431,7 @@ def main() -> int:
             "files": changed_files if not dry_run else list(set(o["file"] for o in all_occurs)),
             "details": [
                 {
-                    "file": os.path.relpath(o["file"], root),
+                    "file": _safe_relpath(o["file"], root),
                     "line": o["lineno"],
                     "col": o["col_offset"],
                     "kind": o["kind"],
@@ -450,7 +450,8 @@ def main() -> int:
         for o in all_occurs:
             by_file.setdefault(o["file"], []).append(o)
         for fp in sorted(by_file.keys()):
-            relpath = os.path.relpath(fp, root) if os.path.isdir(root) else fp
+            relpath = _safe_relpath(fp, root) if os.path.isdir(root) else fp
+
             refs_list = by_file[fp]
             print(f"  {relpath}:")
             for r in refs_list:

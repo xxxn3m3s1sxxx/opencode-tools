@@ -25,7 +25,7 @@ import sys
 from collections import defaultdict
 from typing import Any
 
-from common import VERSION, SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
+from common import VERSION, SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr, _safe_relpath
 
 reconfigure_stdout_stderr()
 
@@ -359,7 +359,7 @@ def main() -> int:
     if not os.path.exists(filepath):
         print(f"File not found: {file_arg}", file=sys.stderr)
         return 1
-    file_rel = os.path.relpath(os.path.abspath(filepath), root)
+    file_rel = _safe_relpath(os.path.abspath(filepath), root)
     edges = graph["edges"]
     rev = graph["reverse"]
     imports = sorted(edges.get(file_rel, []))

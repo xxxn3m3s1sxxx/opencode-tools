@@ -140,6 +140,13 @@ def line_count(filepath: str) -> int:
     return len(raw.split("\n"))
 
 
+def _safe_relpath(path: str, start: str) -> str:
+    try:
+        return os.path.relpath(path, start)
+    except ValueError:
+        return os.path.abspath(path)
+
+
 def checksum(filepath: str) -> Optional[str]:
     import hashlib
 
