@@ -58,7 +58,7 @@ def _git_info(root: str) -> dict[str, Any]:
     commit = _run(["git", "rev-parse", "--short", "HEAD"], root)
     msg = _run(["git", "log", "-1", "--format=%s"], root)
     status = _run(["git", "status", "--short"], root)
-    dirty_lines = [l for l in status.split("\n") if l.strip()] if status else []
+    dirty_lines = [line for line in status.split("\n") if line.strip()] if status else []
     log = _run(["git", "log", "--oneline", "-10"], root)
     log_lines = log.split("\n") if log else []
 
@@ -67,8 +67,8 @@ def _git_info(root: str) -> dict[str, Any]:
         "commit": commit or "",
         "message": msg or "",
         "dirty_files": len(dirty_lines),
-        "dirty": [l[:80] for l in dirty_lines[:20]],
-        "recent_commits": [l[:80] for l in log_lines],
+        "dirty": [line[:80] for line in dirty_lines[:20]],
+        "recent_commits": [line[:80] for line in log_lines],
     }
 
 
@@ -125,7 +125,6 @@ def _tool_versions(root: str) -> dict[str, str]:
 
 def _dir_tree(root: str, max_depth: int = 2) -> list[str]:
     lines: list[str] = []
-    root_name = os.path.basename(root) or root
 
     def walk(dirpath: str, depth: int) -> None:
         if depth > max_depth:
@@ -181,12 +180,12 @@ def format_markdown(data: dict[str, Any], tree: list[str]) -> str:
     lines.append(f"- **Dirty files:** {data['git']['dirty_files']}")
     if data["git"]["dirty"]:
         lines.append("- Changes:")
-        for l in data["git"]["dirty"]:
-            lines.append(f"  - `{l}`")
+        for line in data["git"]["dirty"]:
+            lines.append(f"  - `{line}`")
     if data["git"]["recent_commits"]:
         lines.append("- Recent commits:")
-        for l in data["git"]["recent_commits"]:
-            lines.append(f"  - `{l}`")
+        for line in data["git"]["recent_commits"]:
+            lines.append(f"  - `{line}`")
     lines.append("")
 
     lines.append("## Files")
@@ -198,8 +197,8 @@ def format_markdown(data: dict[str, Any], tree: list[str]) -> str:
     lines.append("")
 
     lines.append("## Directory Tree")
-    for l in tree:
-        lines.append(l)
+    for line in tree:
+        lines.append(line)
     lines.append("")
 
     if data["tools"]:

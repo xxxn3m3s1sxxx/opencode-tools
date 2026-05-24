@@ -17,7 +17,6 @@ import os
 import subprocess
 import sys
 from collections import defaultdict
-from typing import Any
 
 from common import VERSION, reconfigure_stdout_stderr
 

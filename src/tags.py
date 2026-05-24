@@ -17,10 +17,9 @@ import json
 import os
 import re
 import sys
-from pathlib import Path
 from typing import Any
 
-from common import VERSION, SOURCE_EXTS, EXCLUDE_DIRS, _walk_files, _read_file, reconfigure_stdout_stderr
+from common import VERSION, SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
 
@@ -198,7 +197,6 @@ def main() -> int:
 
     use_json = "--json" in args
     stats_only = "--stats" in args
-    force_build = "--build" in args
     root = os.getcwd()
 
     i = 0

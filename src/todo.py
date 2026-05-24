@@ -21,7 +21,7 @@ import sys
 from collections import Counter
 from typing import Any
 
-from common import VERSION, SOURCE_EXTS, EXCLUDE_DIRS, _walk_files, _read_file, reconfigure_stdout_stderr
+from common import VERSION, SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
 
@@ -127,7 +127,6 @@ def main() -> int:
 
     use_json = "--json" in args
     count_only = "--count" in args
-    all_flag = "--all" in args
     single_file: str | None = None
     root = os.getcwd()
 

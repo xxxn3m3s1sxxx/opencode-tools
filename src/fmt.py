@@ -19,7 +19,7 @@ import subprocess
 import sys
 from typing import Any
 
-from common import VERSION, EXCLUDE_DIRS, reconfigure_stdout_stderr
+from common import VERSION, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
 
