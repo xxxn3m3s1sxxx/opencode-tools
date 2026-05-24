@@ -1,6 +1,6 @@
 # OpenCode Tools — Low-Latency Repository Analysis & AI Coding Assistants
 
-[![Tools](https://img.shields.io/static/v1?label=tools&message=12&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Tools](https://img.shields.io/static/v1?label=tools&message=13&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Tests](https://img.shields.io/static/v1?label=tests&message=320%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Speed](https://img.shields.io/static/v1?label=parse&message=5000%2B%20files%20in%20%3C0.3s&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Python](https://img.shields.io/static/v1?label=python&message=3.11%2B&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)

@@ -211,6 +211,26 @@ def test_snapshot():
     check("snapshot saves file", r.returncode == 0 and "Snapshot saved" in r.stdout)
 
 
+def test_todo():
+    print("\n--- todo ---")
+    r = _tool("todo")
+    check("todo finds markers", r.returncode == 0)
+
+    r = _tool("todo", "--count")
+    check("todo --count works", r.returncode == 0 and "Total:" in r.stdout)
+
+    r = _tool("todo", "--json")
+    check("todo --json works", r.returncode == 0)
+    try:
+        json.loads(r.stdout)
+        check("todo --json is valid", True)
+    except json.JSONDecodeError:
+        check("todo --json is valid", False)
+
+    r = _tool("todo", "--version")
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+
+
 def main():
     print(f"Smoke test: opencode-tools v0.5.0 self-test")
     print(f"Tools dir: {TOOLS_DIR}")
@@ -228,6 +248,7 @@ def main():
         test_hashline,
         test_health,
         test_snapshot,
+        test_todo,
     ]
     for t in tests:
         t()

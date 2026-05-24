@@ -58,7 +58,7 @@ jobs:
           import subprocess, sys, os
           tools = ['hashline', 'impact', 'verify', 'calltrace', 'rename',
                    'graph', 'changelog', 'search', 'lint', 'refactor',
-                   'health', 'snapshot']
+                   'health', 'snapshot', 'todo']
           for t in tools:
               r = subprocess.run([sys.executable, f'{t}.py', '--version'],
                                  capture_output=True, text=True, timeout=10)
