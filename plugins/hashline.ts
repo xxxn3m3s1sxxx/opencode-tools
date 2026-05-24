@@ -15,7 +15,7 @@ try {
 const z = tool.schema
 const CMD_TIMEOUT = 30_000
 
-const VERSION = "0.3.0"
+const VERSION = "0.5.3"
 const stats = { edit_calls: 0, direct_ok: 0, hashline_ok: 0, hashline_fail: 0 }
 
 function strip(e: any): string {

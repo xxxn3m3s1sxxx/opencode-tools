@@ -79,7 +79,8 @@ function formatOutput(symbol: string, data: ImpactResult): string {
     lines.push(`  [calls] ${uniqueCall.size} distinct callees`);
     const sorted = [...uniqueCall].slice(0, 15);
     for (const name of sorted) {
-      const first = callees.find((c) => c.name === name)!;
+      const first = callees.find((c) => c.name === name);
+      if (!first) continue;
       const path = relPath(first.file, root);
       lines.push(`    ${path}:${first.line}  -> ${name}`);
     }

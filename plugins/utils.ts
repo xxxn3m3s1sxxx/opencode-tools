@@ -23,10 +23,13 @@ if (!_pluginDir) _pluginDir = _derivePluginDir()
 
 export function findToolPy(name: string, cwd: string): string {
   const candidates: string[] = []
-  if (_pluginDir) candidates.push(resolve(_pluginDir, name))
+  if (_pluginDir) {
+    candidates.push(resolve(_pluginDir, name))
+    candidates.push(resolve(_pluginDir, "..", "src", name))
+  }
   candidates.push(resolve(cwd, name))
   const found = candidates.find(existsSync)
-  if (!found) throw new Error(`${name} not found in plugin dir or CWD (${cwd}) -- run install script or copy .py files to project root`)
+  if (!found) throw new Error(`${name} not found in plugin dir, src/, or CWD (${cwd}) -- run install script or copy .py files to project root`)
   return found
 }
 

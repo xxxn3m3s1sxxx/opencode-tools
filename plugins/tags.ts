@@ -16,7 +16,8 @@ Usage:
   tags --build                      Force rebuild index
   tags --json                       JSON output
   tags --root <dir>                 Index a specific directory
-  tags --stats                      Show index statistics`,
+  tags --stats                      Show index statistics
+  tags --max-files <N>              Limit files to index (default: 10000)`,
         args: {
           command: z.string().describe("The tags command and args (e.g. '--stats', 'ImpactAnalyzer', '--json')"),
         },
