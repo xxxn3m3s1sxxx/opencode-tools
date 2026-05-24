@@ -57,7 +57,8 @@ jobs:
         run: |
           import subprocess, sys, os
           tools = ['hashline', 'impact', 'verify', 'calltrace', 'rename',
-                   'graph', 'changelog', 'search', 'lint', 'refactor']
+                   'graph', 'changelog', 'search', 'lint', 'refactor',
+                   'health', 'snapshot']
           for t in tools:
               r = subprocess.run([sys.executable, f'{t}.py', '--version'],
                                  capture_output=True, text=True, timeout=10)
@@ -104,6 +105,19 @@ jobs:
       - name: stress tests
         run: python stress_tools.py
 
+      # ── Health & snapshot smoke checks ──
+      - name: health + snapshot check
+        shell: python
+        run: |
+          import subprocess, sys
+          for t, a in [('health', '--quick'), ('health', '--check --quick'), ('snapshot', '--show')]:
+              r = subprocess.run([sys.executable, f'{t}.py'] + a.split(),
+                                 capture_output=True, text=True, timeout=30)
+              ok = r.returncode == 0
+              print(f'[{chr(0x2713) if ok else chr(0x2717)}] {t} {" ".join(a)}')
+              if not ok:
+                  print(r.stderr[-1000:])
+
       # ── Installer integration (Windows) ──
       - name: installer tests
         if: runner.os == 'Windows'
@@ -115,7 +129,7 @@ jobs:
         run: |
           import json
           p = json.load(open('package.json'))
-          assert p['version'] == '0.4.0', f'version mismatch: {p["version"]}'
+          assert p['version'] == '0.5.0', f'version mismatch: {p["version"]}'
           print(f'[OK] package.json v{p["version"]}')
           files = p.get('files', [])
           assert 'utils.ts' in files, 'utils.ts missing'

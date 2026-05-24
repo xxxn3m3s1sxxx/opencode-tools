@@ -1,6 +1,6 @@
 {
   "name": "opencode-tools",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "OpenCode plugin suite — edit, impact, verify, trace, rename, graph, changelog, search, lint, refactor, health",
   "keywords": ["opencode", "plugin", "hashline", "impact", "verify", "trace", "rename", "graph", "changelog", "search", "lint", "refactor", "health"],
   "license": "MIT",

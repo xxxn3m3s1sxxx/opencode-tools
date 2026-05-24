@@ -55,7 +55,7 @@ def test_impact():
     check("missing symbol returns 1", r.returncode == 1)
 
     r = _tool("impact", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
     r = _tool("impact", "--json", "def", "format_pretty")
     check("--json output is valid", r.returncode == 0)
@@ -84,7 +84,7 @@ def test_graph():
     check("--stats works", r.returncode == 0)
 
     r = _tool("graph", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
 
 def test_calltrace():
@@ -99,7 +99,7 @@ def test_calltrace():
     check("missing symbol shows 0 callers", r.returncode == 0 and "callers]" in r.stdout)
 
     r = _tool("calltrace", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
 
 def test_changelog():
@@ -108,7 +108,7 @@ def test_changelog():
     check("changelog -n 5 works", r.returncode == 0 and len(r.stdout) > 50)
 
     r = _tool("changelog", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
     r = _tool("changelog", "-n", "abc")
     check("invalid -n returns 1", r.returncode == 1)
@@ -123,7 +123,7 @@ def test_refactor():
     check("missing symbol returns 1", r.returncode == 1)
 
     r = _tool("refactor", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
 
 def test_verify():
@@ -144,7 +144,7 @@ def test_verify():
     check("missing file returns 1", r.returncode == 1)
 
     r = _tool("verify", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
 
 def test_search():
@@ -166,13 +166,13 @@ def test_search():
         check("empty results is valid", False)
 
     r = _tool("search", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
 
 def test_lint():
     print("\n--- lint ---")
     r = _tool("lint", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
     r = _tool("lint", "--help")
     check("--help works", r.returncode == 0)
@@ -181,7 +181,7 @@ def test_lint():
 def test_hashline():
     print("\n--- hashline ---")
     r = _tool("hashline", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
     r = _tool("hashline", "check", "impact.py")
     check("hashline check works", r.returncode == 0)
@@ -193,7 +193,7 @@ def test_health():
     check("health quick shows metrics", r.returncode == 0 and "files:" in r.stdout)
 
     r = _tool("health", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
     r = _tool("health", "--check", "--quick")
     check("--check mode works", r.returncode in (0, 1))
@@ -205,14 +205,14 @@ def test_snapshot():
     check("snapshot shows git info", r.returncode == 0 and "Git" in r.stdout)
 
     r = _tool("snapshot", "--version")
-    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
     r = _tool("snapshot")
     check("snapshot saves file", r.returncode == 0 and "Snapshot saved" in r.stdout)
 
 
 def main():
-    print(f"Smoke test: opencode-tools v0.4.0 self-test")
+    print(f"Smoke test: opencode-tools v0.5.0 self-test")
     print(f"Tools dir: {TOOLS_DIR}")
     print(f"Python: {sys.executable}")
 
