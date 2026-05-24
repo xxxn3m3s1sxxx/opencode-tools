@@ -12,7 +12,7 @@ REM   install.bat C:\project /local
 setlocal enabledelayedexpansion
 
 set "REPO_BASE=https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
-set "TOOLS=utils hashline impact verify trace changelog graph lint refactor rename search health snapshot todo tags"
+set "TOOLS=utils hashline impact verify trace changelog graph lint refactor rename search health snapshot todo tags check audit fmt churn report ghost"
 set "LOCAL=0"
 
 REM --- Check for /local flag ---
@@ -44,7 +44,7 @@ if not "%1"=="" (
 echo.
 echo   +------------------------------------------+
 echo   ^|  OpenCode Tools Installer                ^|
-echo   ^|  13 tools for AI-assisted coding         ^|
+echo   ^|  20 tools for AI-assisted coding         ^|
 echo   +------------------------------------------+
 echo.
 echo   Config: %OPCODE_DIR%
@@ -58,20 +58,22 @@ if "%LOCAL%"=="1" (
     echo   [local mode] copying from "%~dp0"
 )
 for %%t in (%TOOLS%) do (
+    set "TSFILE=%%t"
+    if "%%t"=="trace" set "TSFILE=calltrace"
     echo   [%%t] plugin...
     if "%LOCAL%"=="1" (
-        if exist "%~dp0%%t.ts" (
-            copy /Y "%~dp0%%t.ts" "%OPCODE_DIR%\plugins\%%t.ts" >nul
+        if exist "%~dp0!TSFILE!.ts" (
+            copy /Y "%~dp0!TSFILE!.ts" "%OPCODE_DIR%\plugins\!TSFILE!.ts" >nul
             echo     OK (local)
         ) else (
             echo     SKIP (not found)
         )
     ) else (
-        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/%%t.ts' -OutFile '%OPCODE_DIR%\plugins\%%t.ts' -UseBasicParsing" >nul
-        if exist "%OPCODE_DIR%\plugins\%%t.ts" (
+        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/!TSFILE!.ts' -OutFile '%OPCODE_DIR%\plugins\!TSFILE!.ts' -UseBasicParsing" >nul
+        if exist "%OPCODE_DIR%\plugins\!TSFILE!.ts" (
             echo     OK
         ) else (
-            echo     FAIL (%%t.ts — network or server error)
+            echo     FAIL (!TSFILE!.ts — network or server error)
         )
     )
 )
@@ -80,11 +82,13 @@ REM --- Install to .opencode\plugins (project-local, auto-discovered) ---
 if not exist "%PROJECT%\.opencode\plugins" mkdir "%PROJECT%\.opencode\plugins"
 
 for %%t in (%TOOLS%) do (
-    if not exist "%PROJECT%\.opencode\plugins\%%t.ts" (
+    set "TSFILE=%%t"
+    if "%%t"=="trace" set "TSFILE=calltrace"
+    if not exist "%PROJECT%\.opencode\plugins\!TSFILE!.ts" (
         if "%LOCAL%"=="1" (
-            if exist "%~dp0%%t.ts" copy /Y "%~dp0%%t.ts" "%PROJECT%\.opencode\plugins\%%t.ts" >nul
+            if exist "%~dp0!TSFILE!.ts" copy /Y "%~dp0!TSFILE!.ts" "%PROJECT%\.opencode\plugins\!TSFILE!.ts" >nul
         ) else (
-            powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/%%t.ts' -OutFile '%PROJECT%\.opencode\plugins\%%t.ts' -UseBasicParsing" >nul
+            powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/!TSFILE!.ts' -OutFile '%PROJECT%\.opencode\plugins\!TSFILE!.ts' -UseBasicParsing" >nul
         )
     )
 )

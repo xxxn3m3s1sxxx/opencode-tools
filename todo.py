@@ -40,13 +40,15 @@ def _scan_file(filepath: str) -> list[dict[str, Any]]:
     markers: list[dict[str, Any]] = []
     for m in TAG_PATTERN.finditer(content):
         line_no = content[: m.start()].count("\n") + 1
-        markers.append({
-            "tag": m.group(1).upper(),
-            "author": m.group(2) or "",
-            "message": m.group(3).strip(),
-            "line": line_no,
-            "file": filepath,
-        })
+        markers.append(
+            {
+                "tag": m.group(1).upper(),
+                "author": m.group(2) or "",
+                "message": m.group(3).strip(),
+                "line": line_no,
+                "file": filepath,
+            }
+        )
     return markers
 
 

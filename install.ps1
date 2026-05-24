@@ -1,6 +1,6 @@
 # OpenCode Tools — Combined installer (PowerShell)
 #
-# Installs all OpenCode tools (13 plugins + engines) in one command.
+# Installs all OpenCode tools (20 plugins + engines) in one command.
 # Auto-detects OpenCode config dir, project root, and Python.
 #
 # Usage:
@@ -15,8 +15,11 @@ param(
 
 $RepoBase = "https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
 $ErrorActionPreference = "Stop"
-$Tools = @("hashline", "impact", "verify", "trace", "rename", "graph", "changelog", "search", "lint", "refactor", "health", "snapshot", "todo", "tags")
-$AllFiles = @("utils.ts") + ($Tools | ForEach-Object { "$_.ts", "$_.py" })
+$Tools = @("hashline", "impact", "verify", "trace", "rename", "graph", "changelog", "search", "lint", "refactor", "health", "snapshot", "todo", "tags", "check", "audit", "fmt", "churn", "report", "ghost")
+$AllFiles = @("utils.ts") + ($Tools | ForEach-Object {
+    $tsfile = if ($_ -eq "trace") { "calltrace" } else { $_ }
+    "$tsfile.ts", "$_.py"
+})
 
 function Write-Step($msg) { Write-Host "  $msg" -ForegroundColor Green }
 function Write-Skip($msg) { Write-Host "  $msg" -ForegroundColor Yellow }
@@ -46,7 +49,7 @@ $ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { "" }
 
 Write-Host "`n  +------------------------------------------+"
 Write-Host "  |  OpenCode Tools Installer                |"
-Write-Host "  |  13 plugins + engines                    |"
+Write-Host "  |  20 plugins + engines                    |"
 Write-Host "  +------------------------------------------+`n"
 Write-Host "  Config: $OpencodeDir"
 Write-Host "  Project: $Project`n"
@@ -81,8 +84,9 @@ Write-Host "  [utils] plugin..."
 Install-File "utils.ts" "$PluginDir\utils.ts" "utils.ts"
 
 foreach ($tool in $Tools) {
+    $tsfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
     Write-Host "  [$tool] plugin..."
-    Install-File "$tool.ts" "$PluginDir\$tool.ts" "$tool.ts"
+    Install-File "$tsfile.ts" "$PluginDir\$tsfile.ts" "$tsfile.ts"
 }
 
 # --- Install to .opencode/plugins (project-local, auto-discovered) ---
@@ -90,9 +94,10 @@ $LocalPluginDir = "$Project\.opencode\plugins"
 if (-not (Test-Path $LocalPluginDir)) { New-Item -ItemType Directory -Path $LocalPluginDir -Force | Out-Null }
 Install-File "utils.ts" "$LocalPluginDir\utils.ts" "utils.ts (.opencode)"
 foreach ($tool in $Tools) {
-    $LocalTs = "$LocalPluginDir\$tool.ts"
+    $tsfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
+    $LocalTs = "$LocalPluginDir\$tsfile.ts"
     if (-not (Test-Path $LocalTs)) {
-        Install-File "$tool.ts" "$LocalTs" "$tool.ts (.opencode)"
+        Install-File "$tsfile.ts" "$LocalTs" "$tsfile.ts (.opencode)"
     }
 }
 

@@ -1,4 +1,4 @@
-"""Integration test: run all tools on the codebase itself."""
+﻿"""Integration test: run all tools on the codebase itself."""
 
 import os
 import subprocess
@@ -18,6 +18,8 @@ def _run(*args):
         [sys.executable, *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         env=env,
         cwd=TOOLS_DIR,
     )
@@ -55,7 +57,7 @@ def test_impact():
     check("missing symbol returns 1", r.returncode == 1)
 
     r = _tool("impact", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
     r = _tool("impact", "--json", "def", "format_pretty")
     check("--json output is valid", r.returncode == 0)
@@ -84,7 +86,7 @@ def test_graph():
     check("--stats works", r.returncode == 0)
 
     r = _tool("graph", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
 
 def test_calltrace():
@@ -99,7 +101,7 @@ def test_calltrace():
     check("missing symbol shows 0 callers", r.returncode == 0 and "callers]" in r.stdout)
 
     r = _tool("calltrace", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
 
 def test_changelog():
@@ -108,7 +110,7 @@ def test_changelog():
     check("changelog -n 5 works", r.returncode == 0 and len(r.stdout) > 50)
 
     r = _tool("changelog", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
     r = _tool("changelog", "-n", "abc")
     check("invalid -n returns 1", r.returncode == 1)
@@ -123,7 +125,7 @@ def test_refactor():
     check("missing symbol returns 1", r.returncode == 1)
 
     r = _tool("refactor", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
 
 def test_verify():
@@ -144,7 +146,7 @@ def test_verify():
     check("missing file returns 1", r.returncode == 1)
 
     r = _tool("verify", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
 
 def test_search():
@@ -166,13 +168,13 @@ def test_search():
         check("empty results is valid", False)
 
     r = _tool("search", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
 
 def test_lint():
     print("\n--- lint ---")
     r = _tool("lint", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
     r = _tool("lint", "--help")
     check("--help works", r.returncode == 0)
@@ -181,7 +183,7 @@ def test_lint():
 def test_hashline():
     print("\n--- hashline ---")
     r = _tool("hashline", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
     r = _tool("hashline", "check", "impact.py")
     check("hashline check works", r.returncode == 0)
@@ -193,7 +195,7 @@ def test_health():
     check("health quick shows metrics", r.returncode == 0 and "files:" in r.stdout)
 
     r = _tool("health", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
     r = _tool("health", "--check", "--quick")
     check("--check mode works", r.returncode in (0, 1))
@@ -205,7 +207,7 @@ def test_snapshot():
     check("snapshot shows git info", r.returncode == 0 and "Git" in r.stdout)
 
     r = _tool("snapshot", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
     r = _tool("snapshot")
     check("snapshot saves file", r.returncode == 0 and "Snapshot saved" in r.stdout)
@@ -228,7 +230,7 @@ def test_todo():
         check("todo --json is valid", False)
 
     r = _tool("todo", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
 
 
 def test_tags():
@@ -243,11 +245,96 @@ def test_tags():
     check("tags missing symbol returns 1", r.returncode == 1)
 
     r = _tool("tags", "--version")
-    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+
+
+def test_check():
+    print("\n--- check ---")
+    r = _tool("check", "--quick")
+    check("check quick passes", r.returncode == 0 and "All checks passed" in r.stdout)
+
+    r = _tool("check", "--version")
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+
+    r = _tool("check", "-h")
+    check("--help shows usage", r.returncode == 0 and "lint" in r.stdout.lower())
+
+
+def test_audit():
+    print("\n--- audit ---")
+    r = _tool("audit", ".")
+    check("audit scans directory", r.returncode in (0, 1))
+    check("audit finds secrets in self-test", "Findings:" in r.stdout)
+
+    r = _tool("audit", "--version")
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+
+    r = _tool("audit", "-h")
+    check("--help shows usage", r.returncode == 0 and "scanner" in r.stdout.lower())
+
+    r = _tool("audit", "--json", ".")
+    import json
+
+    if r.returncode in (0, 1) and r.stdout.strip():
+        try:
+            data = json.loads(r.stdout)
+            check("--json output is valid", "status" in data and "findings" in data)
+        except json.JSONDecodeError:
+            check("--json output is valid", False)
+    else:
+        check("--json output is valid", False)
+
+
+def test_fmt():
+    print("\n--- fmt ---")
+    r = _tool("fmt", "--ruff", "--check")
+    check("fmt runs (ruff available)", r.returncode in (0, 1))
+
+    r = _tool("fmt", "--version")
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+
+    r = _tool("fmt", "-h")
+    check("--help shows usage", r.returncode == 0 and "format" in r.stdout.lower())
+
+
+def test_churn():
+    print("\n--- churn ---")
+    r = _tool("churn", "-n", "5")
+    check("churn top 5 works", r.returncode == 0 and "x" in r.stdout)
+
+    r = _tool("churn", "--version")
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+
+    r = _tool("churn", "-h")
+    check("--help shows usage", r.returncode == 0 and "churn" in r.stdout.lower())
+
+
+def test_report():
+    print("\n--- report ---")
+    r = _tool("report", "--quick")
+    check("report quick works", r.returncode in (0, 1) and "Health Report" in r.stdout)
+
+    r = _tool("report", "--version")
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+
+    r = _tool("report", "-h")
+    check("--help shows usage", r.returncode == 0 and "report" in r.stdout.lower())
+
+
+def test_ghost():
+    print("\n--- ghost ---")
+    r = _tool("ghost", "--lang", "py")
+    check("ghost scans python", r.returncode == 0)
+
+    r = _tool("ghost", "--version")
+    check("--version shows 0.5.0", "0.5.1" in r.stdout)
+
+    r = _tool("ghost", "-h")
+    check("--help shows usage", r.returncode == 0 and "dead" in r.stdout.lower())
 
 
 def main():
-    print(f"Smoke test: opencode-tools v0.5.0 self-test")
+    print(f"Smoke test: opencode-tools v0.5.1 self-test")
     print(f"Tools dir: {TOOLS_DIR}")
     print(f"Python: {sys.executable}")
 
@@ -264,6 +351,13 @@ def main():
         test_health,
         test_snapshot,
         test_todo,
+        test_tags,
+        test_check,
+        test_audit,
+        test_fmt,
+        test_churn,
+        test_report,
+        test_ghost,
     ]
     for t in tests:
         t()

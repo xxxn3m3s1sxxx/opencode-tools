@@ -679,7 +679,9 @@ class ImpactAnalyzer:
                         elif isinstance(child, ast.Call):
                             callee_nodes.append(child)
                     for child in callee_nodes:
-                        in_nested = any((start or 0) <= (child.lineno or 0) <= (end or 0) for start, end in nested_ranges)
+                        in_nested = any(
+                            (start or 0) <= (child.lineno or 0) <= (end or 0) for start, end in nested_ranges
+                        )
                         if in_nested:
                             continue
                         if isinstance(child.func, ast.Name):
@@ -819,7 +821,14 @@ def _fmt_line_count(count: int) -> str:
     return f"{count} occurrence{s}"
 
 
-def format_pretty(symbol: str, defs: list[dict[str, Any]], refs: list[dict[str, Any]], tests: list[dict[str, Any]], callees: list[dict[str, Any]], root: str | Path) -> str:
+def format_pretty(
+    symbol: str,
+    defs: list[dict[str, Any]],
+    refs: list[dict[str, Any]],
+    tests: list[dict[str, Any]],
+    callees: list[dict[str, Any]],
+    root: str | Path,
+) -> str:
     """Human-readable output."""
     lines = []
     lines.append(f"impact: `{symbol}`")
@@ -873,7 +882,14 @@ def format_pretty(symbol: str, defs: list[dict[str, Any]], refs: list[dict[str, 
     return "\n".join(lines)
 
 
-def format_json(symbol: str, defs: list[dict[str, Any]], refs: list[dict[str, Any]], tests: list[dict[str, Any]], callees: list[dict[str, Any]], root: str | Path) -> str:
+def format_json(
+    symbol: str,
+    defs: list[dict[str, Any]],
+    refs: list[dict[str, Any]],
+    tests: list[dict[str, Any]],
+    callees: list[dict[str, Any]],
+    root: str | Path,
+) -> str:
     """JSON output for plugin."""
     return json.dumps(
         {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test suite for trace.py — recursive call chain analyzer."""
+"""Test suite for calltrace.py — recursive call chain analyzer."""
 
 import json
 import os
@@ -24,7 +24,7 @@ def _run(args):
     old_argv = sys.argv
     old_stdout = sys.stdout
     try:
-        sys.argv = ["trace"] + args
+        sys.argv = ["calltrace"] + args
         from io import StringIO
 
         sys.stdout = StringIO()
@@ -296,7 +296,7 @@ def test_bar():
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.4.0", out)
+        self.assertIn("0.5.1", out)
 
     def test_nonexistent_symbol(self):
         code, out = _run(["--root=" + self.tmpdir, "nonexistent"])

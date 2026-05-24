@@ -33,12 +33,25 @@ PY_SOURCE_EXTS = {".py"}
 CPP_SOURCE_EXTS = {".c", ".cpp", ".h", ".hpp", ".cc", ".cxx", ".hxx", ".hh"}
 TS_SOURCE_EXTS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 ALL_EXTS = PY_SOURCE_EXTS | CPP_SOURCE_EXTS | TS_SOURCE_EXTS
-EXCLUDE_DIRS = {".git", "__pycache__", "node_modules", "build", "dist", ".eggs", "env", "venv", ".ruff_cache", ".mypy_cache"}
+EXCLUDE_DIRS = {
+    ".git",
+    "__pycache__",
+    "node_modules",
+    "build",
+    "dist",
+    ".eggs",
+    "env",
+    "venv",
+    ".ruff_cache",
+    ".mypy_cache",
+}
 
 
 def _run_cmd(cmd: list[str], cwd: str, timeout: int = 120) -> tuple[str, str, int]:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, cwd=cwd)
+        r = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, cwd=cwd
+        )
         return r.stdout, r.stderr, r.returncode
     except FileNotFoundError:
         return "", "command not found", -1
@@ -111,7 +124,11 @@ def _run_mypy(root: str, quick: bool = False) -> dict[str, Any]:
     output = stdout or stderr
     match = re.search(r"(\d+) errors in (\d+) files", output)
     if match:
-        return {"status": "fail" if int(match.group(1)) > 0 else "ok", "errors": int(match.group(1)), "files": int(match.group(2))}
+        return {
+            "status": "fail" if int(match.group(1)) > 0 else "ok",
+            "errors": int(match.group(1)),
+            "files": int(match.group(2)),
+        }
     if "No issues found" in output or "Success" in output:
         return {"status": "ok", "errors": 0, "files": 0}
     return {"status": "fail", "errors": -1, "files": 0}
@@ -177,9 +194,11 @@ def format_pretty(data: dict[str, Any]) -> str:
 
     m = data["metrics"]
     lines.append("[metrics]")
-    lines.append(f"  files:   {m['files']['total']} ({m['files']['python']} py, {m['files']['cpp']} cpp, {m['files']['typescript']} ts)")
+    lines.append(
+        f"  files:   {m['files']['total']} ({m['files']['python']} py, {m['files']['cpp']} cpp, {m['files']['typescript']} ts)"
+    )
     lines.append(f"  lines:   {m['lines']['total']}")
-    for lang, count in sorted(m['lines']['by_language'].items()):
+    for lang, count in sorted(m["lines"]["by_language"].items()):
         lines.append(f"    {lang}: {count}")
     lines.append("")
 

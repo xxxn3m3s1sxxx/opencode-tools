@@ -27,13 +27,27 @@ from common import VERSION, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
 
-EXCLUDE_DIRS = {".git", "__pycache__", "node_modules", "build", "dist", ".eggs", "env", "venv", ".ruff_cache", ".mypy_cache", ".opencode"}
+EXCLUDE_DIRS = {
+    ".git",
+    "__pycache__",
+    "node_modules",
+    "build",
+    "dist",
+    ".eggs",
+    "env",
+    "venv",
+    ".ruff_cache",
+    ".mypy_cache",
+    ".opencode",
+}
 SNAPSHOT_DIR = ".opencode/snapshots"
 
 
 def _run(cmd: list[str], cwd: str | None = None, timeout: int = 30) -> str:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, cwd=cwd)
+        r = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, cwd=cwd
+        )
         return (r.stdout or r.stderr).strip()
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return ""
@@ -85,7 +99,21 @@ def _file_stats(root: str) -> dict[str, Any]:
 
 def _tool_versions(root: str) -> dict[str, str]:
     versions = {}
-    tools = ["common", "graph", "changelog", "impact", "lint", "refactor", "rename", "verify", "search", "calltrace", "hashline", "health", "snapshot"]
+    tools = [
+        "common",
+        "graph",
+        "changelog",
+        "impact",
+        "lint",
+        "refactor",
+        "rename",
+        "verify",
+        "search",
+        "calltrace",
+        "hashline",
+        "health",
+        "snapshot",
+    ]
     for t in tools:
         fp = os.path.join(root, f"{t}.py")
         if os.path.exists(fp):
@@ -151,13 +179,13 @@ def format_markdown(data: dict[str, Any], tree: list[str]) -> str:
     lines.append(f"- **Commit:** {data['git']['commit']}")
     lines.append(f"- **Message:** {data['git']['message']}")
     lines.append(f"- **Dirty files:** {data['git']['dirty_files']}")
-    if data['git']['dirty']:
+    if data["git"]["dirty"]:
         lines.append("- Changes:")
-        for l in data['git']['dirty']:
+        for l in data["git"]["dirty"]:
             lines.append(f"  - `{l}`")
-    if data['git']['recent_commits']:
+    if data["git"]["recent_commits"]:
         lines.append("- Recent commits:")
-        for l in data['git']['recent_commits']:
+        for l in data["git"]["recent_commits"]:
             lines.append(f"  - `{l}`")
     lines.append("")
 
@@ -165,7 +193,7 @@ def format_markdown(data: dict[str, Any], tree: list[str]) -> str:
     lines.append(f"- **Total files:** {data['files']['total_files']}")
     lines.append(f"- **Total lines:** {data['files']['total_lines']}")
     lines.append("- By extension:")
-    for ext, count in data['files']['by_extension'].items():
+    for ext, count in data["files"]["by_extension"].items():
         lines.append(f"  - `{ext}`: {count}")
     lines.append("")
 
@@ -200,7 +228,9 @@ def try_mempalace_mine(filepath: str) -> bool:
         if os.path.exists(py):
             r = subprocess.run(
                 [py, "-m", "mempalace", "mine", "--mode", "projects", os.path.dirname(filepath)],
-                capture_output=True, text=True, timeout=30,
+                capture_output=True,
+                text=True,
+                timeout=30,
             )
             return r.returncode == 0
     return False

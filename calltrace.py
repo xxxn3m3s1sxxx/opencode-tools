@@ -35,8 +35,10 @@ reconfigure_stdout_stderr()
 ImpactAnalyzer: Any = None
 try:
     from impact import ImpactAnalyzer as _IA
+
     ImpactAnalyzer = _IA
     from impact import _is_python as _is_python_fn, _grep_find_references as _grep_refs_fn
+
     _is_python = _is_python_fn
     _grep_find_references = _grep_refs_fn
 except ImportError:
@@ -137,7 +139,14 @@ def _build_index(files: list[str]) -> dict[str, list[dict[str, Any]]]:
     return idx
 
 
-def _find_callers_from_index(analyzer: Any, symbol: str, depth: int, lang: str, idx: dict[str, list[dict[str, Any]]], visited: set[str] | None = None) -> list[dict[str, Any]]:
+def _find_callers_from_index(
+    analyzer: Any,
+    symbol: str,
+    depth: int,
+    lang: str,
+    idx: dict[str, list[dict[str, Any]]],
+    visited: set[str] | None = None,
+) -> list[dict[str, Any]]:
     """Find who calls a given symbol, using pre-built inverted index."""
     if visited is None:
         visited = set()
@@ -180,7 +189,9 @@ def _find_callers_from_index(analyzer: Any, symbol: str, depth: int, lang: str, 
     return results
 
 
-def _find_callers(analyzer: Any, symbol: str, depth: int, lang: str, visited: set[str] | None = None, files: list[str] | None = None) -> list[dict[str, Any]]:
+def _find_callers(
+    analyzer: Any, symbol: str, depth: int, lang: str, visited: set[str] | None = None, files: list[str] | None = None
+) -> list[dict[str, Any]]:
     """Find who calls a given symbol, recursively up to depth."""
     if visited is None:
         visited = set()
@@ -219,7 +230,14 @@ def _find_callers(analyzer: Any, symbol: str, depth: int, lang: str, visited: se
     return results
 
 
-def _find_call_chain(analyzer: Any, symbol: str, depth: int, lang: str, visited: set[str] | None = None, chain: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+def _find_call_chain(
+    analyzer: Any,
+    symbol: str,
+    depth: int,
+    lang: str,
+    visited: set[str] | None = None,
+    chain: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     """Build call chain recursively (callees only, forward)."""
     if visited is None:
         visited = set()
@@ -249,7 +267,9 @@ def _tree_char(i: int, total: int) -> str:
     return "└── " if i == total - 1 else "├── "
 
 
-def format_pretty(symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int) -> str:
+def format_pretty(
+    symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int
+) -> str:
     lines = []
     lines.append(f"trace: `{symbol}`")
     lines.append(f"  depth: {depth}")
@@ -283,7 +303,9 @@ def format_pretty(symbol: str, callers: list[dict[str, Any]], chain: list[dict[s
     return "\n".join(lines)
 
 
-def format_viz(symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int) -> str:
+def format_viz(
+    symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int
+) -> str:
     """ASCII tree visualization of call chain."""
     lines = []
     lines.append(f"trace: `{symbol}` (viz, depth={depth})")
@@ -343,7 +365,9 @@ def format_viz(symbol: str, callers: list[dict[str, Any]], chain: list[dict[str,
     return "\n".join(lines)
 
 
-def format_json(symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int) -> str:
+def format_json(
+    symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int
+) -> str:
     return json.dumps(
         {
             "symbol": symbol,

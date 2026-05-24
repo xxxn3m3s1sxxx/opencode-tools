@@ -223,7 +223,7 @@ def test_graph_diamond():
 
 # 17. impact.py:288 — TS empty-name guard
 def test_impact_ts_empty_def():
-    r = _run_tool("impact", os.path.join(TOOLS_DIR, "trace.ts"), "--json")
+    r = _run_tool("impact", os.path.join(TOOLS_DIR, "calltrace.ts"), "--json")
     check("impact TS file no crash", r.returncode in (0, 1))
 
 

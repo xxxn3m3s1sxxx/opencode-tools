@@ -9,7 +9,7 @@
 set -euo pipefail
 
 REPO="https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
-TOOLS="utils hashline impact verify trace rename graph changelog search lint refactor health snapshot todo tags"
+TOOLS="utils hashline impact verify trace rename graph changelog search lint refactor health snapshot todo tags check audit fmt churn report ghost"
 
 # --- Detect local mode ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,7 +29,7 @@ fi
 echo ""
 echo "  +------------------------------------------+"
 echo "  |  OpenCode Tools Installer                |"
-echo "  |  13 plugins + engines                    |"
+echo "  |  20 plugins + engines                    |"
 echo "  +------------------------------------------+"
 echo ""
 echo "  Config:  $OPCODE_DIR"
@@ -41,7 +41,9 @@ mkdir -p "$PLUGIN_DIR"
 
 # Install plugins (.ts)
 for tool in $TOOLS; do
-  src="${tool}.ts"
+  tsfile="$tool"
+  [ "$tool" = "trace" ] && tsfile="calltrace"
+  src="${tsfile}.ts"
   dst="$PLUGIN_DIR/$src"
   if $LOCAL && [ -f "$SCRIPT_DIR/$src" ]; then
     cp "$SCRIPT_DIR/$src" "$dst"
@@ -59,7 +61,9 @@ done
 LOCAL_PLUGIN_DIR="$PROJECT/.opencode/plugins"
 mkdir -p "$LOCAL_PLUGIN_DIR"
 for tool in $TOOLS; do
-  src="${tool}.ts"
+  tsfile="$tool"
+  [ "$tool" = "trace" ] && tsfile="calltrace"
+  src="${tsfile}.ts"
   dst="$LOCAL_PLUGIN_DIR/$src"
   if [ ! -f "$dst" ]; then
     if $LOCAL && [ -f "$SCRIPT_DIR/$src" ]; then

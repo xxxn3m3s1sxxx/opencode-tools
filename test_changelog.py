@@ -246,7 +246,7 @@ class TestCLI(unittest.TestCase):
     def test_version(self):
         code, out = self._run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.4.0", out)
+        self.assertIn("0.5.1", out)
 
     def test_help(self):
         code, out = self._run(["--help"])

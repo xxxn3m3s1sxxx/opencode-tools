@@ -157,10 +157,10 @@ def format_index(index: dict[str, list[dict[str, Any]]], root: str) -> str:
     lines: list[str] = []
     stat = index_stats(index)
     lines.append(f"  {stat['total_tags']} tags for {stat['total_symbols']} symbols across {stat['by_language']}:")
-    for lang, count in sorted(stat['by_language'].items()):
+    for lang, count in sorted(stat["by_language"].items()):
         lines.append(f"    {lang}: {count}")
     lines.append("")
-    by_kind = stat['by_kind']
+    by_kind = stat["by_kind"]
     lines.append(f"  Kinds: {', '.join(f'{k}={v}' for k, v in by_kind.items())}")
     lines.append("")
     for name in sorted(index.keys())[:50]:
@@ -232,7 +232,7 @@ def main() -> int:
             print(json.dumps(s, indent=2))
         else:
             lines = [f"  {s['total_tags']} tags, {s['total_symbols']} symbols"]
-            for lang, count in sorted(s['by_language'].items()):
+            for lang, count in sorted(s["by_language"].items()):
                 lines.append(f"    {lang}: {count}")
             print("\n".join(lines))
         return 0

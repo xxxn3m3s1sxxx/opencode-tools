@@ -24,13 +24,23 @@ EXPECTED_TS = [
     "hashline.ts",
     "impact.ts",
     "verify.ts",
-    "trace.ts",
+    "calltrace.ts",
     "changelog.ts",
     "graph.ts",
     "lint.ts",
     "refactor.ts",
     "rename.ts",
     "search.ts",
+    "health.ts",
+    "snapshot.ts",
+    "todo.ts",
+    "tags.ts",
+    "check.ts",
+    "audit.ts",
+    "fmt.ts",
+    "churn.ts",
+    "report.ts",
+    "ghost.ts",
 ]
 
 EXPECTED_PY_ENGINES = [
@@ -44,6 +54,16 @@ EXPECTED_PY_ENGINES = [
     "refactor.py",
     "rename.py",
     "search.py",
+    "health.py",
+    "snapshot.py",
+    "todo.py",
+    "tags.py",
+    "check.py",
+    "audit.py",
+    "fmt.py",
+    "churn.py",
+    "report.py",
+    "ghost.py",
 ]
 
 
