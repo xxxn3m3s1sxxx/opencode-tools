@@ -49,6 +49,7 @@
     "ghost.ts",
     "ghost.py",
     "CHANGELOG.md",
+    "QUALITY.md",
     "README.md"
   ],
   "scripts": {
