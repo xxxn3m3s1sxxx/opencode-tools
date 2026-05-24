@@ -22,7 +22,7 @@ SAMPLE_PY = """\
 import os
 from sys import path
 
-VERSION = "0.5.2"
+VERSION = "0.5.3"
 
 def greet(name):
     print(f"Hello, {name}!")
@@ -44,7 +44,7 @@ SAMPLE_REFACTOR = """\
 import os
 from sys import path
 
-APP_VERSION = "0.5.2"
+APP_VERSION = "0.5.3"
 
 def hello(name):
     print(f"Hello, {name}!")
@@ -228,7 +228,7 @@ class TestCLI(unittest.TestCase):
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.5.2", out)
+        self.assertIn("0.5.3", out)
 
     def test_nonexistent_file(self):
         code, out = _run(["foo", "bar", "--file", "/nonexistent.py"])

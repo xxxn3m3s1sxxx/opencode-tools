@@ -378,6 +378,100 @@ def _ts_find_references(filepath: str, symbol: str) -> list[dict[str, Any]]:
     return _grep_find_references(filepath, symbol)
 
 
+_CPP_CALL_PAT = re.compile(r"(?:(?:[\w:<>*&]+\s+)?(\w+)\s*\()")
+
+
+def _cpp_find_callees(filepath: str, symbol: str) -> list[dict[str, Any]]:
+    """Find callees of a C++ function using regex + brace matching."""
+    callees: list[dict[str, Any]] = []
+    try:
+        source = _read_file(filepath)
+    except (OSError, UnicodeDecodeError):
+        return callees
+    if not source:
+        return callees
+
+    lines = source.split("\n")
+    total = len(source)
+
+    func_def = re.compile(r"(?:[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{")
+    call_pat = re.compile(r"(\w+)\s*\(")
+
+    for m in func_def.finditer(source):
+        name = m.group(1)
+        if name != symbol:
+            continue
+        brace_pos = m.end() - 1
+        start_line = source[:brace_pos].count("\n") + 1
+
+        depth = 1
+        pos = brace_pos + 1
+        while pos < total and depth > 0:
+            c = source[pos]
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+            pos += 1
+
+        end_line = source[:pos].count("\n") if depth == 0 else len(lines)
+        body = source[brace_pos + 1 : pos - 1] if depth == 0 else source[brace_pos + 1 :]
+
+        # Find nested function def ranges to skip inner definitions
+        nested_ranges = []
+        for nm in func_def.finditer(body):
+            nb_pos = m.end() - 1 if nm is m else source.find("{", nm.end())
+            # Recalculate relative brace position
+            n_start = body.find("{", nm.start() - m.start())
+            if n_start < 0:
+                continue
+            n_depth = 1
+            n_pos = n_start + 1
+            while n_pos < len(body) and n_depth > 0:
+                if body[n_pos] == "{":
+                    n_depth += 1
+                elif body[n_pos] == "}":
+                    n_depth -= 1
+                n_pos += 1
+            if n_depth == 0:
+                n_line = start_line + body[:n_start].count("\n")
+                e_line = start_line + body[:n_pos].count("\n")
+                nested_ranges.append((n_line, e_line))
+
+        for cm in call_pat.finditer(body):
+            cname = cm.group(1)
+            c_line = start_line + body[: cm.start()].count("\n")
+            if any(s <= c_line <= e for s, e in nested_ranges):
+                continue
+            # Skip keywords and common C++ builtins
+            if cname in {
+                "if",
+                "for",
+                "while",
+                "switch",
+                "catch",
+                "return",
+                "sizeof",
+                "decltype",
+                "throw",
+                "new",
+                "delete",
+                "try",
+                "case",
+                "else",
+                "do",
+                "const_cast",
+                "static_cast",
+                "dynamic_cast",
+                "reinterpret_cast",
+                "typeid",
+            }:
+                continue
+            callees.append({"name": cname, "file": filepath, "line": c_line})
+
+    return sorted(callees, key=lambda r: r["line"])
+
+
 # ─── Generic Reference Search (rg/grep) ──────────────────────────────────
 
 
@@ -641,68 +735,68 @@ class ImpactAnalyzer:
         return []
 
     def find_callees(self, symbol: str, lang: str = "all") -> list[dict[str, Any]]:
-        """Find what functions/methods are called by a definition (Python only)."""
+        """Find what functions/methods are called by a definition."""
         # Find the definition first
         defs = self.find_definition(symbol, lang)
         if not defs:
             return []
 
-        # Only Python AST can do this
         callees = []
         for d in defs:
-            if not _is_python(d["file"]):
-                continue
-            try:
-                source = _read_file(d["file"])
-                tree = ast.parse(source, d["file"])
-            except SyntaxError:
-                continue
+            if _is_python(d["file"]):
+                try:
+                    source = _read_file(d["file"])
+                    tree = ast.parse(source, d["file"])
+                except SyntaxError:
+                    continue
 
-            # Find the function/class node
-            for node in ast.walk(tree):
-                if (
-                    isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-                    and node.name == symbol
-                    and hasattr(node, "lineno")
-                    and node.lineno == d["line"]
-                ):
-                    # Single walk: collect nested def ranges AND direct calls
-                    children = list(ast.walk(node))
-                    nested_ranges = []
-                    callee_nodes = []
-                    for child in children:
-                        if child is node:
-                            continue
-                        if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                            if hasattr(child, "lineno") and hasattr(child, "end_lineno"):
-                                nested_ranges.append((child.lineno, child.end_lineno))
-                        elif isinstance(child, ast.Call):
-                            callee_nodes.append(child)
-                    for child in callee_nodes:
-                        in_nested = any(
-                            (start or 0) <= (child.lineno or 0) <= (end or 0) for start, end in nested_ranges
-                        )
-                        if in_nested:
-                            continue
-                        if isinstance(child.func, ast.Name):
-                            callees.append(
-                                {
-                                    "name": child.func.id,
-                                    "file": d["file"],
-                                    "line": child.lineno,
-                                }
+                # Find the function/class node
+                for node in ast.walk(tree):
+                    if (
+                        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                        and node.name == symbol
+                        and hasattr(node, "lineno")
+                        and node.lineno == d["line"]
+                    ):
+                        # Single walk: collect nested def ranges AND direct calls
+                        children = list(ast.walk(node))
+                        nested_ranges = []
+                        callee_nodes = []
+                        for child in children:
+                            if child is node:
+                                continue
+                            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                                if hasattr(child, "lineno") and hasattr(child, "end_lineno"):
+                                    nested_ranges.append((child.lineno, child.end_lineno))
+                            elif isinstance(child, ast.Call):
+                                callee_nodes.append(child)
+                        for child in callee_nodes:
+                            in_nested = any(
+                                (start or 0) <= (child.lineno or 0) <= (end or 0) for start, end in nested_ranges
                             )
-                        elif isinstance(child.func, ast.Attribute):
-                            callees.append(
-                                {
-                                    "name": f"{child.func.value.id}.{child.func.attr}"
-                                    if isinstance(child.func.value, ast.Name)
-                                    else child.func.attr,
-                                    "file": d["file"],
-                                    "line": child.lineno,
-                                }
-                            )
-                    break
+                            if in_nested:
+                                continue
+                            if isinstance(child.func, ast.Name):
+                                callees.append(
+                                    {
+                                        "name": child.func.id,
+                                        "file": d["file"],
+                                        "line": child.lineno,
+                                    }
+                                )
+                            elif isinstance(child.func, ast.Attribute):
+                                callees.append(
+                                    {
+                                        "name": f"{child.func.value.id}.{child.func.attr}"
+                                        if isinstance(child.func.value, ast.Name)
+                                        else child.func.attr,
+                                        "file": d["file"],
+                                        "line": child.lineno,
+                                    }
+                                )
+                        break
+            elif _is_cpp(d["file"]):
+                callees.extend(_cpp_find_callees(d["file"], symbol))
 
         return sorted(callees, key=lambda r: r["line"])
 

@@ -48,32 +48,31 @@ def _unused_py(filepath: str, min_uses: int) -> list[dict[str, Any]]:
     references: dict[str, int] = defaultdict(int)
 
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef):
-            definitions[node.name] += 1
-        elif isinstance(node, ast.AsyncFunctionDef):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             definitions[node.name] += 1
         elif isinstance(node, ast.ClassDef):
             definitions[node.name] += 1
         elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
             references[node.id] += 1
-        elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load) and isinstance(node.value, ast.Name):
-            if node.value.id == "self":
-                references[node.attr] += 1
+        elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
+            references[node.attr] += 1
 
     for name, def_count in definitions.items():
-        ref_count = references.get(name, 0) - def_count
+        ref_count = references.get(name, 0)
         if name.startswith("_") and not name.startswith("__"):
             continue
         if name in {"main"}:
             continue
         if ref_count < min_uses:
-            unused.append({
-                "name": name,
-                "kind": "function" if isinstance(tree, ast.AST) else "unknown",
-                "file": filepath,
-                "definitions": def_count,
-                "references": ref_count,
-            })
+            unused.append(
+                {
+                    "name": name,
+                    "kind": "function" if isinstance(tree, ast.AST) else "unknown",
+                    "file": filepath,
+                    "definitions": def_count,
+                    "references": ref_count,
+                }
+            )
 
     return unused
 
@@ -129,27 +128,63 @@ def _unused_ts(filepath: str, min_uses: int) -> list[dict[str, Any]]:
             continue
         rc = ref_counts.get(name, 0)
         if rc < min_uses:
-            unused.append({
-                "name": name,
-                "kind": kind,
-                "file": filepath,
-                "definitions": 1,
-                "references": rc,
-            })
+            unused.append(
+                {
+                    "name": name,
+                    "kind": kind,
+                    "file": filepath,
+                    "definitions": 1,
+                    "references": rc,
+                }
+            )
 
     return unused
 
 
 def _filter_builtins(name: str) -> bool:
     builtins = {
-        "print", "len", "str", "int", "dict", "list", "set", "tuple",
-        "bool", "float", "type", "open", "range", "zip", "map", "filter",
-        "sorted", "reversed", "enumerate", "isinstance", "hasattr",
-        "getattr", "setattr", "staticmethod", "classmethod", "property",
-        "super", "object", "Exception", "ValueError", "TypeError",
-        "KeyError", "IndexError", "AttributeError", "ImportError",
-        "RuntimeError", "OSError", "IOError", "StopIteration",
-        "True", "False", "None",
+        "print",
+        "len",
+        "str",
+        "int",
+        "dict",
+        "list",
+        "set",
+        "tuple",
+        "bool",
+        "float",
+        "type",
+        "open",
+        "range",
+        "zip",
+        "map",
+        "filter",
+        "sorted",
+        "reversed",
+        "enumerate",
+        "isinstance",
+        "hasattr",
+        "getattr",
+        "setattr",
+        "staticmethod",
+        "classmethod",
+        "property",
+        "super",
+        "object",
+        "Exception",
+        "ValueError",
+        "TypeError",
+        "KeyError",
+        "IndexError",
+        "AttributeError",
+        "ImportError",
+        "RuntimeError",
+        "OSError",
+        "IOError",
+        "StopIteration",
+        "True",
+        "False",
+        "None",
     }
     return name in builtins
 
@@ -178,7 +213,9 @@ def main() -> int:
             if idx < len(args):
                 root = args[idx]
         elif a.startswith("--min-uses"):
-            val = a.split("=", 1)[1] if "=" in a else (args[args.index(a) + 1] if args.index(a) + 1 < len(args) else "1")
+            val = (
+                a.split("=", 1)[1] if "=" in a else (args[args.index(a) + 1] if args.index(a) + 1 < len(args) else "1")
+            )
             try:
                 min_uses = int(val)
             except ValueError:
@@ -223,12 +260,17 @@ def main() -> int:
     all_unused.sort(key=lambda x: (x["file"], x["name"]))
 
     if use_json:
-        print(json.dumps({
-            "status": "ok",
-            "total": len(all_unused),
-            "min_uses": min_uses,
-            "unused": all_unused,
-        }, indent=2))
+        print(
+            json.dumps(
+                {
+                    "status": "ok",
+                    "total": len(all_unused),
+                    "min_uses": min_uses,
+                    "unused": all_unused,
+                },
+                indent=2,
+            )
+        )
     else:
         if all_unused:
             by_file: dict[str, list[dict[str, Any]]] = defaultdict(list)

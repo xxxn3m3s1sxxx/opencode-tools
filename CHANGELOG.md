@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.3] — 2026-05-24
+
+### Fixed
+- **ghost**: False positives in Python — `ref_count - def_count` subtraction made every
+  single-use symbol look unused. Also broadened attribute tracking from only `self.method()`
+  to all attribute loads, catching `instance.method()` patterns.
+- **trace/calltrace**: C++ symbols returned empty chains. Added `_find_enclosing_function_cpp()`
+  (brace-matching) for caller detection, and `_cpp_find_callees()` in impact.py for forward chains.
+- **tags**: `--stats` timed out on large C++ projects. Added `--max-files N` (default 10000)
+  to cap file walk. Use `--max-files 0` for unlimited.
+
 ## [0.5.2] — 2026-05-24
 
 ### Changed

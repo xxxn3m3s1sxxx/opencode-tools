@@ -129,7 +129,7 @@ jobs:
         run: |
           import json
           p = json.load(open('package.json'))
-          assert p['version'] == '0.5.2', f'version mismatch: {p["version"]}'
+          assert p['version'] == '0.5.3', f'version mismatch: {p["version"]}'
           print(f'[OK] package.json v{p["version"]}')
           files = p.get('files', [])
           assert 'plugins/utils.ts' in files, 'utils.ts missing'

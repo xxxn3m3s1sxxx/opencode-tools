@@ -29,7 +29,7 @@ def _run(tool: str, *args: str) -> subprocess.CompletedProcess[str]:
 class TestCheck(unittest.TestCase):
     def test_version(self):
         r = _run("check", "--version")
-        self.assertIn("0.5.2", r.stdout)
+        self.assertIn("0.5.3", r.stdout)
 
     def test_help(self):
         r = _run("check", "-h")
@@ -45,7 +45,7 @@ class TestCheck(unittest.TestCase):
 class TestAudit(unittest.TestCase):
     def test_version(self):
         r = _run("audit", "--version")
-        self.assertIn("0.5.2", r.stdout)
+        self.assertIn("0.5.3", r.stdout)
 
     def test_help(self):
         r = _run("audit", "-h")
@@ -79,7 +79,7 @@ class TestAudit(unittest.TestCase):
 class TestFmt(unittest.TestCase):
     def test_version(self):
         r = _run("fmt", "--version")
-        self.assertIn("0.5.2", r.stdout)
+        self.assertIn("0.5.3", r.stdout)
 
     def test_help(self):
         r = _run("fmt", "-h")
@@ -106,7 +106,7 @@ class TestFmt(unittest.TestCase):
 class TestChurn(unittest.TestCase):
     def test_version(self):
         r = _run("churn", "--version")
-        self.assertIn("0.5.2", r.stdout)
+        self.assertIn("0.5.3", r.stdout)
 
     def test_help(self):
         r = _run("churn", "-h")
@@ -140,7 +140,7 @@ class TestChurn(unittest.TestCase):
 class TestReport(unittest.TestCase):
     def test_version(self):
         r = _run("report", "--version")
-        self.assertIn("0.5.2", r.stdout)
+        self.assertIn("0.5.3", r.stdout)
 
     def test_help(self):
         r = _run("report", "-h")
@@ -176,7 +176,7 @@ class TestReport(unittest.TestCase):
 class TestGhost(unittest.TestCase):
     def test_version(self):
         r = _run("ghost", "--version")
-        self.assertIn("0.5.2", r.stdout)
+        self.assertIn("0.5.3", r.stdout)
 
     def test_help(self):
         r = _run("ghost", "-h")

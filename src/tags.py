@@ -108,8 +108,10 @@ def _ext_to_lang(ext: str) -> str:
     return ""
 
 
-def build_index(root: str) -> dict[str, list[dict[str, Any]]]:
+def build_index(root: str, max_files: int = 10000) -> dict[str, list[dict[str, Any]]]:
     files = _walk_files(root, SOURCE_EXTS)
+    if max_files > 0 and len(files) > max_files:
+        files = files[:max_files]
     index: dict[str, list[dict[str, Any]]] = {}
     tag_count = 0
     for fp in files:
@@ -197,11 +199,27 @@ def main() -> int:
 
     use_json = "--json" in args
     stats_only = "--stats" in args
+    max_files = 10000
     root = os.getcwd()
 
     i = 0
     while i < len(args):
         a = args[i]
+        if a == "--max-files" and i + 1 < len(args):
+            try:
+                max_files = max(0, int(args[i + 1]))
+            except ValueError:
+                pass
+            i += 2
+            continue
+        if a.startswith("--max-files="):
+            val = a.split("=", 1)[1]
+            try:
+                max_files = max(0, int(val))
+            except ValueError:
+                pass
+            i += 1
+            continue
         if a in ("--json", "--stats", "--build"):
             i += 1
             continue
@@ -222,7 +240,7 @@ def main() -> int:
         print(f"Directory not found: {root}", file=sys.stderr)
         return 1
 
-    index = build_index(root)
+    index = build_index(root, max_files)
 
     if stats_only:
         s = index_stats(index)

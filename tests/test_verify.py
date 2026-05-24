@@ -331,7 +331,7 @@ class TestCLI(unittest.TestCase):
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.5.2", out)
+        self.assertIn("0.5.3", out)
 
     def test_diff(self):
         code, out = _run([self.path, "--diff"])

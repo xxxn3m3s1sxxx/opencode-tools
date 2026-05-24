@@ -28,7 +28,7 @@ import sys
 
 from typing import Any
 
-from common import VERSION, reconfigure_stdout_stderr
+from common import VERSION, CPP_SOURCE_EXTS, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
 
@@ -60,6 +60,55 @@ def _read_file(filepath: str) -> str:
     """Read file, stripping BOM and normalizing CRLF to LF."""
     with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
         return f.read().replace("\r\n", "\n")
+
+
+def _is_cpp(filepath: str) -> bool:
+    _, ext = os.path.splitext(filepath)
+    return ext.lower() in CPP_SOURCE_EXTS
+
+
+_CPP_FUNC_PAT = re.compile(r"(?:[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{")
+_CPP_ENCLOSING_CACHE: dict[str, dict[int, str]] = {}
+
+
+def _find_enclosing_function_cpp(filepath: str, line_no: int) -> str | None:
+    """Find the C++ function enclosing a given line using brace matching."""
+    if filepath in _CPP_ENCLOSING_CACHE:
+        return _CPP_ENCLOSING_CACHE[filepath].get(line_no)
+
+    try:
+        source = _read_file(filepath)
+    except (OSError, UnicodeDecodeError):
+        return None
+    if not source:
+        return None
+
+    lines = source.split("\n")
+    total = len(source)
+    line_info: dict[int, str] = {}
+
+    for m in _CPP_FUNC_PAT.finditer(source):
+        name = m.group(1)
+        brace_pos = m.end() - 1
+        start_line = source[:brace_pos].count("\n") + 1
+
+        depth = 1
+        pos = brace_pos + 1
+        while pos < total and depth > 0:
+            c = source[pos]
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+            pos += 1
+
+        end_line = source[:pos].count("\n") if depth == 0 else len(lines)
+        for ln in range(start_line, end_line + 1):
+            if ln not in line_info:
+                line_info[ln] = name
+
+    _CPP_ENCLOSING_CACHE[filepath] = line_info
+    return line_info.get(line_no)
 
 
 _ENCLOSING_CACHE: dict[str, dict[int, str]] = {}
@@ -170,6 +219,8 @@ def _find_callers_from_index(
         caller = None
         if _is_python(fp):
             caller = _find_enclosing_function(fp, occ["line"])
+        elif _is_cpp(fp):
+            caller = _find_enclosing_function_cpp(fp, occ["line"])
         if caller != symbol and caller not in visited:
             name = caller or ""
             results.append(
@@ -182,7 +233,7 @@ def _find_callers_from_index(
                     "context": occ.get("context", ""),
                 }
             )
-            if depth > 1 and _is_python(fp) and name:
+            if depth > 1 and name:
                 deeper = _find_callers_from_index(analyzer, name, depth - 1, lang, idx, visited)
                 results.extend(deeper)
 
@@ -211,6 +262,8 @@ def _find_callers(
             caller = None
             if _is_python(fp):
                 caller = _find_enclosing_function(occ["file"], occ["line"])
+            elif _is_cpp(fp):
+                caller = _find_enclosing_function_cpp(occ["file"], occ["line"])
             if caller != symbol and caller not in visited:
                 name = caller or ""
                 results.append(
@@ -223,7 +276,7 @@ def _find_callers(
                         "context": occ.get("context", ""),
                     }
                 )
-                if depth > 1 and _is_python(fp) and name:
+                if depth > 1 and name:
                     deeper = _find_callers(analyzer, name, depth - 1, lang, visited, files)
                     results.extend(deeper)
 

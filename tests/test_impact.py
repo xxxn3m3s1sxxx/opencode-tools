@@ -566,7 +566,7 @@ class TestCLI(unittest.TestCase):
     def test_version(self):
         code, out = self._run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.5.2", out)
+        self.assertIn("0.5.3", out)
 
 
 class TestEdgeCases(unittest.TestCase):

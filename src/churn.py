@@ -25,8 +25,9 @@ reconfigure_stdout_stderr()
 
 def _run(cmd: list[str], cwd: str, timeout: int = 60) -> str:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
-                           errors="replace", timeout=timeout, cwd=cwd)
+        r = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, cwd=cwd
+        )
         if r.returncode != 0:
             return ""
         return r.stdout
