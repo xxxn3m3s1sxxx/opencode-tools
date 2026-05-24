@@ -147,11 +147,13 @@ def format_log(entries: list[dict]) -> str:
 
 def main():
     args = sys.argv[1:]
-    if not args or args[0] in ('--help', '-h'):
+    if not args:
+        # Show recent commits by default (like `git log --oneline -20`)
+        pass
+    elif args[0] in ('--help', '-h'):
         print(__doc__.strip())
-        return 0 if args and args[0] in ('--help', '-h') else 1
-
-    if args[0] == '--version':
+        return 0
+    elif args[0] == '--version':
         print(f"changelog.py {VERSION}")
         return 0
 

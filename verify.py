@@ -87,7 +87,7 @@ def cmd_context(filepath, lines, raw, target_line, context=3):
     """Show context around a line."""
     total = len(lines)
     if target_line < 1 or target_line > total:
-        return {'status': 'error', 'message': f'line {target_line} out of range (1-{total})'}
+        return {'status': 'error', 'check': 'context', 'message': f'line {target_line} out of range (1-{total})'}
 
     start = max(0, target_line - context)
     end = min(total, target_line + context + 1)
@@ -285,7 +285,10 @@ def format_pretty(result):
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
+    if len(sys.argv) < 2:
+        print(__doc__.strip())
+        return 1
+    if sys.argv[1] in ('-h', '--help'):
         print(__doc__.strip())
         return 0
 
@@ -307,6 +310,7 @@ def main():
     clean_args = []
     old_text = None
     new_text = None
+    line_no = None
 
     i = 0
     while i < len(args):
@@ -360,9 +364,8 @@ def main():
     file_ref = clean_args[0]
     arg_text = ' '.join(clean_args[1:]) if len(clean_args) > 1 else None
 
-    # Parse file:line
+    # Parse file:line (--line flag already parsed)
     filepath = file_ref
-    line_no = None
     if ':' in file_ref:
         parts = file_ref.rsplit(':', 1)
         if parts[1].isdigit():

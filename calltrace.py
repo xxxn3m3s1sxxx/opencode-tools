@@ -49,34 +49,32 @@ def _read_file(filepath):
         return f.read().replace("\r\n", "\n")
 
 
+_ENCLOSING_CACHE: dict[str, dict] = {}
+
 def _find_enclosing_function(filepath, line_no):
     """Find the name of the function enclosing a given line (Python only)."""
-    try:
-        source = _read_file(filepath)
-        tree = ast.parse(source, filepath)
-    except (SyntaxError, OSError):
-        return None
-
-    candidates = []
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if hasattr(node, 'lineno') and hasattr(node, 'end_lineno'):
-                if node.lineno <= line_no <= node.end_lineno:
-                    candidates.append((node.lineno, node.name))
-
-    # Return the innermost (most deeply nested) function
-    if candidates:
-        candidates.sort(key=lambda x: -x[0])
-        return candidates[0][1]
-
-    # Class definitions at module level
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef):
-            if hasattr(node, 'lineno') and hasattr(node, 'end_lineno'):
-                if node.lineno <= line_no <= node.end_lineno:
-                    return node.name
-
-    return None
+    if filepath in _ENCLOSING_CACHE:
+        tree_info = _ENCLOSING_CACHE[filepath]
+    else:
+        try:
+            source = _read_file(filepath)
+            tree = ast.parse(source, filepath)
+        except (SyntaxError, OSError):
+            return None
+        # Precompute: for each line, the innermost enclosing function
+        tree_info = {}
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if hasattr(node, 'lineno') and hasattr(node, 'end_lineno'):
+                    for ln in range(node.lineno, node.end_lineno + 1):
+                        tree_info[ln] = node.name
+            elif isinstance(node, ast.ClassDef):
+                if hasattr(node, 'lineno') and hasattr(node, 'end_lineno'):
+                    for ln in range(node.lineno, node.end_lineno + 1):
+                        if ln not in tree_info:
+                            tree_info[ln] = node.name
+        _ENCLOSING_CACHE[filepath] = tree_info
+    return tree_info.get(line_no)
 
 
 def _grep_occurrences(filepath, symbol):
@@ -99,8 +97,32 @@ def _grep_occurrences(filepath, symbol):
     return matches
 
 
-def _find_callers(analyzer, symbol, depth, lang, visited=None):
-    """Find who calls a given symbol, recursively up to depth."""
+def _build_index(files):
+    """Build inverted index: symbol -> [(file, line, context)] from source files."""
+    idx = {}
+    for fp in files:
+        try:
+            source = _read_file(fp)
+            if not source:
+                continue
+            lines = source.split("\n")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for i, line in enumerate(lines, 1):
+            for m in re.finditer(r'\b(\w+)\b', line):
+                sym = m.group(1)
+                if sym not in idx:
+                    idx[sym] = []
+                idx[sym].append({
+                    'file': fp,
+                    'line': i,
+                    'context': line[:120].strip(),
+                })
+    return idx
+
+
+def _find_callers_from_index(analyzer, symbol, depth, lang, idx, visited=None):
+    """Find who calls a given symbol, using pre-built inverted index."""
     if visited is None:
         visited = set()
     if depth <= 0 or symbol in visited:
@@ -109,8 +131,51 @@ def _find_callers(analyzer, symbol, depth, lang, visited=None):
     visited.add(symbol)
     results = []
 
-    # Use grep-based search to catch both direct calls and attribute-style
-    files = analyzer._walk_files(lang)
+    occs = idx.get(symbol, [])
+    for occ in occs:
+        fp = occ['file']
+        if lang != 'all':
+            ext = os.path.splitext(fp)[1].lower()
+            if lang == 'py' and ext != '.py':
+                continue
+            if lang == 'cpp' and ext not in ('.cpp', '.c', '.h', '.hpp', '.cc', '.cxx', '.hxx', '.hh'):
+                continue
+            if lang == 'ts' and ext not in ('.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'):
+                continue
+        caller = None
+        if _is_python(fp):
+            caller = _find_enclosing_function(fp, occ['line'])
+        if caller != symbol and caller not in visited:
+            name = caller or ''
+            results.append({
+                'type': 'caller',
+                'caller': name,
+                'callee': symbol,
+                'file': occ['file'],
+                'line': occ['line'],
+                'context': occ.get('context', ''),
+            })
+            if depth > 1 and _is_python(fp) and name:
+                deeper = _find_callers_from_index(analyzer, name, depth - 1, lang, idx, visited)
+                results.extend(deeper)
+
+    return results
+
+
+def _find_callers(analyzer, symbol, depth, lang, visited=None, files=None):
+    """Find who calls a given symbol, recursively up to depth."""
+    if visited is None:
+        visited = set()
+    if depth <= 0 or symbol in visited:
+        return []
+
+    # Cache file list at top-level call, pass down via recursion
+    if files is None:
+        files = analyzer._walk_files(lang)
+
+    visited.add(symbol)
+    results = []
+
     for fp in files:
         occs = _grep_occurrences(fp, symbol)
         for occ in occs:
@@ -128,7 +193,7 @@ def _find_callers(analyzer, symbol, depth, lang, visited=None):
                     'context': occ.get('context', ''),
                 })
                 if depth > 1 and _is_python(fp) and name:
-                    deeper = _find_callers(analyzer, name, depth - 1, lang, visited)
+                    deeper = _find_callers(analyzer, name, depth - 1, lang, visited, files)
                     results.extend(deeper)
 
     return results
@@ -366,7 +431,8 @@ def main():
     chain = []
 
     if mode in ('up', 'both'):
-        callers = _find_callers(analyzer, symbol, depth, lang)
+        idx = _build_index(analyzer._walk_files(lang))
+        callers = _find_callers_from_index(analyzer, symbol, depth, lang, idx)
 
     if mode in ('down', 'both'):
         chain = _find_call_chain(analyzer, symbol, depth, lang)

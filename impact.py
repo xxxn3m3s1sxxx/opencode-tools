@@ -285,8 +285,7 @@ def _ts_find_definitions(filepath, symbol):
                 if val:
                     name = val
                     break
-            if not name or name != symbol:
-                continue
+            if name and name == symbol:
                 line_no = clean[:m.start()].count('\n') + 1
                 context = lines[line_no - 1][:120] if line_no <= len(lines) else ''
                 matches.append({
@@ -384,7 +383,7 @@ class ImpactAnalyzer:
         if root_dir is None:
             root_dir = self._detect_root()
         self.root = Path(root_dir).resolve()
-        self._file_cache = None
+        self._file_cache: dict[str, list[str]] = {}
 
     def _detect_root(self):
         """Auto-detect project root via git."""
@@ -401,8 +400,8 @@ class ImpactAnalyzer:
 
     def _walk_files(self, lang='all'):
         """Walk all source files in project."""
-        if self._file_cache is not None:
-            return self._file_cache
+        if lang in self._file_cache:
+            return self._file_cache[lang]
 
         files = []
         for root, dirs, names in os.walk(self.root):
@@ -421,7 +420,7 @@ class ImpactAnalyzer:
                 elif lang == 'all' and _is_source_file(fpath):
                     files.append(fpath)
 
-        self._file_cache = files
+        self._file_cache[lang] = files
         return files
 
     def find_definition(self, symbol, lang='all'):
