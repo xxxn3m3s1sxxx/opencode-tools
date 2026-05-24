@@ -414,14 +414,11 @@ def _cpp_find_callees(filepath: str, symbol: str) -> list[dict[str, Any]]:
                 depth -= 1
             pos += 1
 
-        end_line = source[:pos].count("\n") if depth == 0 else len(lines)
         body = source[brace_pos + 1 : pos - 1] if depth == 0 else source[brace_pos + 1 :]
 
         # Find nested function def ranges to skip inner definitions
         nested_ranges = []
         for nm in func_def.finditer(body):
-            nb_pos = m.end() - 1 if nm is m else source.find("{", nm.end())
-            # Recalculate relative brace position
             n_start = body.find("{", nm.start() - m.start())
             if n_start < 0:
                 continue
