@@ -391,7 +391,6 @@ def _cpp_find_callees(filepath: str, symbol: str) -> list[dict[str, Any]]:
     if not source:
         return callees
 
-    lines = source.split("\n")
     total = len(source)
 
     func_def = re.compile(r"(?:[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{")
