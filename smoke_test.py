@@ -187,6 +187,18 @@ def test_hashline():
     check("hashline check works", r.returncode == 0)
 
 
+def test_health():
+    print("\n--- health ---")
+    r = _tool("health", "--quick")
+    check("health quick shows metrics", r.returncode == 0 and "files:" in r.stdout)
+
+    r = _tool("health", "--version")
+    check("--version shows 0.4.0", "0.4.0" in r.stdout)
+
+    r = _tool("health", "--check", "--quick")
+    check("--check mode works", r.returncode in (0, 1))
+
+
 def main():
     print(f"Smoke test: opencode-tools v0.4.0 self-test")
     print(f"Tools dir: {TOOLS_DIR}")
@@ -202,6 +214,7 @@ def main():
         test_search,
         test_lint,
         test_hashline,
+        test_health,
     ]
     for t in tests:
         t()

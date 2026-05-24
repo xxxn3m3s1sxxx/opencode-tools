@@ -19,11 +19,12 @@ verify = "verify:main"
 search = "search:main"
 calltrace = "calltrace:main"
 hashline = "hashline:main"
+health = "health:main"
 
 [tool.setuptools]
 py-modules = [
     "common", "graph", "changelog", "impact", "lint", "refactor",
-    "rename", "verify", "search", "calltrace", "hashline",
+    "rename", "verify", "search", "calltrace", "hashline", "health",
 ]
 
 [tool.ruff]
