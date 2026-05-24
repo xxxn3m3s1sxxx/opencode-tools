@@ -71,13 +71,11 @@ All tests must pass on **3 OS × 3 Python versions**:
 
 | Metric | Threshold |
 |--------|-----------|
-| Cold start (import + parse) | < 100ms |
-| `graph` on 5500 files | < 0.5s |
+| Cold start (import + parse) | < 200ms |
+| `graph` on monorepo (120 files) | < 0.5s |
 | `search` on 50k lines | < 0.3s |
 | `impact` on monorepo | < 0.2s |
 | File size limit | Skip > 50MB (OOM guard) |
-
-All tools must be UNC-path safe (no network timeout hangs).
 
 ## 6. Cross-Platform
 

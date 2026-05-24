@@ -7,11 +7,11 @@
 [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)](LICENSE)
 [![Release](https://img.shields.io/static/v1?label=release&message=v0.5.3&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.3)
 
-**20 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, health summary, workspace snapshots, secret scanning, dead code detection, git churn, pre-commit gates, format runners, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
+**20 pure-Python stdlib tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, health summary, workspace snapshots, secret scanning, dead code detection, git churn, pre-commit gates, format runners, and more. Zero `pip install` beyond OpenCode itself — `os`, `ast`, `re`, `json`, `subprocess` only.
 
 After `pip install -e .`, every tool becomes a **global CLI command** — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `calltrace`, `changelog`, `hashline`, `health`, `snapshot`, `todo`, `tags`, `check`, `audit`, `fmt`, `churn`, `report`, `ghost`. All via `pyproject.toml` entry points, zero shell config needed.
 
-> ⚡ **Parses 5000+ files in under 0.3 seconds** — `graph.py` maps imports, dependents, and cycles across 50k+ line codebases. UNC-timeout-safe path handling, sub-100ms cold starts, cross-platform since day one.
+> 🧩 **Zero dependencies, zero config** — 20 tools, pure Python stdlib, cross-platform since day one. Install in one line, use as CLI commands immediately. Python AST for precise analysis, regex fallback for C++/TS/JS. Hash-anchored edits survive whitespace mismatches. Cross-drive safe on Windows (C:↔D:).
 
 ---
 
@@ -27,14 +27,15 @@ That's it. All 20 tools are now available as **global CLI commands** via `pyproj
 
 ## Performance
 
-| Benchmark | Before | After | Improvement |
-|-----------|--------|-------|-------------|
-| `graph` — 5500 files (node_modules + dist) | 58.2s (UNC timeout) | **0.27s** | **215× faster** |
-| `search` — regex on 50k+ line codebase | 12.4s | **0.18s** | **69× faster** |
-| `impact` — symbol lookup on monorepo | 8.7s | **0.09s** | **97× faster** |
-| All 360+ tests + smoke test (CI, 3 OS × 3 Python) | — | **<90s** | — |
+| Benchmark | Typical |
+|-----------|---------|
+| Cold start (any tool, `--help`) | ~150ms |
+| `graph` on monorepo (120 source files) | ~430ms |
+| `search` on 50k lines | ~200ms |
+| `impact` symbol lookup on monorepo | ~150ms |
+| Full CI (9 matrix variants) | ~5-8 min |
 
-Key optimizations: UNC-safe path handling (no network timeout hangs), OOM guard (skips files >50MB), `\b` word-boundary rename with multi-language support, zero-import Python stdlib engines.
+Key design decisions: `os.walk`-based file discovery (no `glob`/`Path` overhead), regex import parsing (no full AST for non-Python files), hash-anchored edits survive whitespace/indent mismatches where direct text replace fails.
 
 ## Usage Examples
 
@@ -142,7 +143,7 @@ cp *.py /path/to/project/
 | Tool | File | Description |
 |------|------|-------------|
 | `rename` | rename.py | Word-boundary `\b` symbol rename across all source files |
-| `refactor` | refactor.py | **AST-based** rename (Python) — no false positives on partial matches |
+| `refactor` | refactor.py | **AST-based** rename (Python) — no substring false matches on partial names |
 
 ### Safety & Quality
 | Tool | File | Description |

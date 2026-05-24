@@ -76,7 +76,7 @@
 ### Changed
 - README fully rewritten with performance benchmarks
 - Installer scripts unified (sh/ps1/bat)
-- Performance optimizations: UNC-safe paths, OOM guard, sub-100ms cold starts
+- Performance: OOM guard (skip files >50MB), cross-drive safe on Windows
 
 ## [0.3.0] — 2026-05-10
 
