@@ -18,6 +18,8 @@ Categorizes commits by conventional-commit prefix
 (feat/fix/docs/refactor/test/ci/chore/...).
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -158,7 +160,7 @@ def format_log(entries: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def main():
+def main() -> int:
     args = sys.argv[1:]
     if not args:
         # Show recent commits by default (like `git log --oneline -20`)

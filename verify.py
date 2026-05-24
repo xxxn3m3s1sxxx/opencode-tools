@@ -20,18 +20,22 @@ Exit code:
   1 = any check failed
 """
 
+from __future__ import annotations
+
 import hashlib
 import json
 import re
 import subprocess
 import sys
 
+from typing import Any
+
 from common import VERSION, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
 
 
-def _read_file(filepath):
+def _read_file(filepath: str) -> tuple[list[str] | None, str | None]:
     """Read file content, return (lines, raw)."""
     try:
         with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
@@ -46,18 +50,18 @@ def _read_file(filepath):
     except (UnicodeDecodeError, OSError):
         try:
             with open(filepath, "rb") as f:
-                raw = f.read()
-            text = raw.decode("utf-8", errors="replace")
+                raw_bytes = f.read()
+            text = raw_bytes.decode("utf-8", errors="replace")
             return text.splitlines(), text
         except OSError:
             return None, None
 
 
-def _checksum(text):
+def _checksum(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
 
-def _find_line(lines, text):
+def _find_line(lines: list[str], text: str) -> int | None:
     """Find line number containing text (case-insensitive, 1-indexed)."""
     pattern = re.compile(re.escape(text), re.IGNORECASE)
     for i, line in enumerate(lines):
@@ -66,12 +70,12 @@ def _find_line(lines, text):
     return None
 
 
-def _count_matches(lines, text):
+def _count_matches(lines: list[str], text: str) -> int:
     pattern = re.compile(re.escape(text), re.IGNORECASE)
     return sum(1 for line in lines if pattern.search(line))
 
 
-def cmd_summary(filepath, lines, raw):
+def cmd_summary(filepath: str, lines: list[str], raw: str) -> dict[str, Any]:
     """Show file summary."""
     return {
         "status": "ok",
@@ -83,7 +87,7 @@ def cmd_summary(filepath, lines, raw):
     }
 
 
-def cmd_context(filepath, lines, raw, target_line, context=3):
+def cmd_context(filepath: str, lines: list[str], raw: str, target_line: int, context: int = 3) -> dict[str, Any]:
     """Show context around a line."""
     total = len(lines)
     if target_line < 1 or target_line > total:
@@ -112,7 +116,7 @@ def cmd_context(filepath, lines, raw, target_line, context=3):
     }
 
 
-def cmd_diff(filepath, staged=False, context_lines=3):
+def cmd_diff(filepath: str, staged: bool = False, context_lines: int = 3) -> dict[str, Any]:
     """Show git diff for a file."""
     try:
         # Check if file is git-tracked
@@ -138,7 +142,7 @@ def cmd_diff(filepath, staged=False, context_lines=3):
         return {"status": "error", "message": "git diff timed out"}
 
 
-def cmd_contains(filepath, lines, raw, text, should_exist=True):
+def cmd_contains(filepath: str, lines: list[str], raw: str, text: str, should_exist: bool = True) -> dict[str, Any]:
     """Check if text exists (or doesn't exist) in file."""
     found_line = _find_line(lines, text)
     count = _count_matches(lines, text)
@@ -165,7 +169,7 @@ def cmd_contains(filepath, lines, raw, text, should_exist=True):
         }
 
 
-def cmd_line_check(filepath, lines, raw, line_no, expected_text):
+def cmd_line_check(filepath: str, lines: list[str], raw: str, line_no: int, expected_text: str) -> dict[str, Any]:
     """Check content at a specific line."""
     total = len(lines)
     if line_no < 1 or line_no > total:
@@ -185,7 +189,7 @@ def cmd_line_check(filepath, lines, raw, line_no, expected_text):
     }
 
 
-def cmd_replace_verify(filepath, lines, raw, old_text, new_text):
+def cmd_replace_verify(filepath: str, lines: list[str], raw: str, old_text: str, new_text: str) -> dict[str, Any]:
     """After a replace: confirm old is gone and new is present."""
     old_found = _find_line(lines, old_text)
     new_found = _find_line(lines, new_text)
@@ -212,7 +216,7 @@ def cmd_replace_verify(filepath, lines, raw, old_text, new_text):
     }
 
 
-def format_pretty(result):
+def format_pretty(result: dict[str, Any]) -> str:
     """Human-readable output."""
     status = result.get("status", "error")
 
@@ -294,7 +298,7 @@ def format_pretty(result):
     return "\n".join(lines)
 
 
-def main():
+def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__.strip())
         return 1
@@ -395,13 +399,11 @@ def main():
         return 0 if result.get("status") == "ok" else 1
 
     lines, raw = _read_file(filepath)
-    if lines is None:
+    if lines is None or raw is None:
         print(f"  [ERROR] File not found: {filepath}")
         return 1
 
     # Determine command
-    result = None
-
     if old_text is not None and new_text is not None:
         # replace verification
         result = cmd_replace_verify(filepath, lines, raw, old_text, new_text)

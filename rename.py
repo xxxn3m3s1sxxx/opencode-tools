@@ -13,6 +13,8 @@ within the project tree, skipping .git, node_modules, __pycache__, etc.
 Uses \\b word-boundary matching for safe renames.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -40,7 +42,7 @@ def _rename_in_content(content: str, old: str, new: str) -> str:
     return pattern.sub(new, content)
 
 
-def main():
+def main() -> int:
     args = sys.argv[1:]
     if not args or args[0] in ("--help", "-h"):
         print(__doc__.strip())

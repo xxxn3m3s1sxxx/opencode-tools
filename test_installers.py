@@ -12,7 +12,7 @@ import tempfile
 
 TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
 except (AttributeError, OSError):
     pass
 

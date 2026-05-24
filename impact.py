@@ -15,6 +15,8 @@ Options:
   --lang py|cpp|ts|js|all    Filter by language
 """
 
+from __future__ import annotations
+
 import ast
 import json
 import os
@@ -23,12 +25,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+from typing import Any
+
 from common import VERSION, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
 
 
-def _read_file(filepath):
+def _read_file(filepath: str) -> str:
     """Read file, stripping BOM and normalizing CRLF to LF."""
     with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
         return f.read().replace("\r\n", "\n")
@@ -134,9 +138,9 @@ TS_DEF_PATTERNS = [
 # ─── Python AST Analysis ──────────────────────────────────────────────────
 
 
-def _py_find_definitions(filepath, symbol):
+def _py_find_definitions(filepath: str, symbol: str) -> list[dict[str, Any]]:
     """Find all definitions in a Python file matching symbol."""
-    matches = []
+    matches: list[dict[str, Any]] = []
     try:
         source = _read_file(filepath)
         tree = ast.parse(source, filepath)
@@ -177,9 +181,9 @@ def _py_find_definitions(filepath, symbol):
     return matches
 
 
-def _py_find_references(filepath, symbol):
+def _py_find_references(filepath: str, symbol: str) -> list[dict[str, Any]]:
     """Find all references to a symbol in a Python file."""
-    matches = []
+    matches: list[dict[str, Any]] = []
     try:
         source = _read_file(filepath)
         tree = ast.parse(source, filepath)
@@ -265,9 +269,9 @@ def _py_find_references(filepath, symbol):
 # ─── C++ Heuristic Analysis ───────────────────────────────────────────────
 
 
-def _cpp_find_definitions(filepath, symbol):
+def _cpp_find_definitions(filepath: str, symbol: str) -> list[dict[str, Any]]:
     """Find C++ definitions matching symbol using regex patterns."""
-    matches = []
+    matches: list[dict[str, Any]] = []
     try:
         source = _read_file(filepath)
         lines = source.split("\n") if source else []
@@ -308,7 +312,7 @@ TS_COMMENT_RE = re.compile(r"//.*$|/\*.*?\*/|^\s*\*", re.MULTILINE | re.DOTALL)
 TS_STRING_RE = re.compile(r"""['"`][^'"`]*['"`]""")
 
 
-def _strip_ts_comments_and_strings(source):
+def _strip_ts_comments_and_strings(source: str) -> str:
     """Remove comments and string literals before regex matching."""
     # Replace string literals with spaces
     result = TS_STRING_RE.sub(lambda m: " " * len(m.group(0)), source)
@@ -319,9 +323,9 @@ def _strip_ts_comments_and_strings(source):
     return result
 
 
-def _ts_find_definitions(filepath, symbol):
+def _ts_find_definitions(filepath: str, symbol: str) -> list[dict[str, Any]]:
     """Find TypeScript/JS definitions matching symbol using regex patterns."""
-    matches = []
+    matches: list[dict[str, Any]] = []
     try:
         source = _read_file(filepath)
         lines = source.split("\n") if source else []
@@ -340,7 +344,7 @@ def _ts_find_definitions(filepath, symbol):
         for m in re.finditer(pattern, clean, re.MULTILINE):
             # Find the name capture group (smallest numbered group that has a value)
             name = ""
-            for g in range(1, m.lastindex + 1):
+            for g in range(1, (m.lastindex or 0) + 1):
                 val = m.group(g)
                 if val:
                     name = val
@@ -369,7 +373,7 @@ def _ts_find_definitions(filepath, symbol):
     return unique
 
 
-def _ts_find_references(filepath, symbol):
+def _ts_find_references(filepath: str, symbol: str) -> list[dict[str, Any]]:
     """Find all references to a symbol in a TS/JS file (word-boundary grep)."""
     return _grep_find_references(filepath, symbol)
 
@@ -377,9 +381,9 @@ def _ts_find_references(filepath, symbol):
 # ─── Generic Reference Search (rg/grep) ──────────────────────────────────
 
 
-def _grep_find_references(filepath, symbol):
+def _grep_find_references(filepath: str, symbol: str) -> list[dict[str, Any]]:
     """Find all references to symbol in a file using regex."""
-    matches = []
+    matches: list[dict[str, Any]] = []
     try:
         source = _read_file(filepath)
         lines = source.split("\n") if source else []
@@ -411,21 +415,21 @@ def _grep_find_references(filepath, symbol):
 # ─── File Type Detection ──────────────────────────────────────────────────
 
 
-def _is_python(filepath):
+def _is_python(filepath: str) -> bool:
     return filepath.endswith(".py")
 
 
-def _is_cpp(filepath):
+def _is_cpp(filepath: str) -> bool:
     ext = os.path.splitext(filepath)[1].lower()
     return ext in (".cpp", ".c", ".h", ".hpp", ".cc", ".cxx", ".hxx", ".hh")
 
 
-def _is_typescript(filepath):
+def _is_typescript(filepath: str) -> bool:
     ext = os.path.splitext(filepath)[1].lower()
     return ext in (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs")
 
 
-def _is_test_file(filepath):
+def _is_test_file(filepath: str) -> bool:
     name = os.path.basename(filepath)
     fwd = filepath.replace("\\", "/")
     return (
@@ -442,7 +446,7 @@ def _is_test_file(filepath):
     )
 
 
-def _is_source_file(filepath):
+def _is_source_file(filepath: str) -> bool:
     return _is_python(filepath) or _is_cpp(filepath) or _is_typescript(filepath)
 
 
@@ -450,13 +454,13 @@ def _is_source_file(filepath):
 
 
 class ImpactAnalyzer:
-    def __init__(self, root_dir=None):
+    def __init__(self, root_dir: str | None = None) -> None:
         if root_dir is None:
             root_dir = self._detect_root()
         self.root = Path(root_dir).resolve()
         self._file_cache: dict[str, list[str]] = {}
 
-    def _detect_root(self):
+    def _detect_root(self) -> str:
         """Auto-detect project root via git."""
         try:
             result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, timeout=5)
@@ -466,7 +470,7 @@ class ImpactAnalyzer:
             pass
         return os.getcwd()
 
-    def _walk_files(self, lang="all"):
+    def _walk_files(self, lang: str = "all") -> list[str]:
         """Walk all source files in project."""
         if lang in self._file_cache:
             return self._file_cache[lang]
@@ -494,7 +498,7 @@ class ImpactAnalyzer:
         self._file_cache[lang] = files
         return files
 
-    def find_definition(self, symbol, lang="all"):
+    def find_definition(self, symbol: str, lang: str = "all") -> list[dict[str, Any]]:
         """Find all definitions of a symbol (deduplicated by file+line)."""
         results = []
         for fp in self._walk_files(lang):
@@ -514,7 +518,7 @@ class ImpactAnalyzer:
                 unique.append(r)
         return unique
 
-    def find_references(self, symbol, lang="all"):
+    def find_references(self, symbol: str, lang: str = "all") -> list[dict[str, Any]]:
         """Find all references to a symbol (deduplicated by file+line)."""
         results = []
         for fp in self._walk_files(lang):
@@ -533,7 +537,7 @@ class ImpactAnalyzer:
                 unique.append(r)
         return unique
 
-    def find_tests(self, symbol, lang="all"):
+    def find_tests(self, symbol: str, lang: str = "all") -> list[dict[str, Any]]:
         """Find test files referencing a symbol (deduplicated)."""
         results = []
         for fp in self._walk_files(lang):
@@ -554,21 +558,21 @@ class ImpactAnalyzer:
                 unique.append(r)
         return unique
 
-    def find_all_defs_in_file(self, filepath):
+    def find_all_defs_in_file(self, filepath: str) -> list[dict[str, Any]]:
         """Find all symbol definitions in a single file."""
         if not os.path.exists(filepath):
             return []
         if _is_python(filepath):
-            matches = []
+            matches: list[dict[str, Any]] = []
             try:
                 source = _read_file(filepath)
                 tree = ast.parse(source, filepath)
             except (SyntaxError, OSError):
                 return matches
             for node in ast.walk(tree):
-                name = None
+                name: str | None = None
                 line = getattr(node, "lineno", 0)
-                kind = None
+                kind: str | None = None
                 if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     name = node.name
                     kind = "function"
@@ -591,52 +595,52 @@ class ImpactAnalyzer:
                     matches.append({"name": name, "type": kind, "line": line})
             return sorted(matches, key=lambda x: x["line"])
         elif _is_cpp(filepath):
-            matches = []
+            cpp_matches: list[dict[str, Any]] = []
             try:
                 source = _read_file(filepath)
             except OSError:
-                return matches
+                return cpp_matches
             for pattern, kind in CPP_DEF_PATTERNS:
-                for m in re.finditer(pattern, source):
-                    name = m.group(1) if kind != "method" else m.group(2)
-                    line_no = source[: m.start()].count("\n") + 1
-                    matches.append({"name": name, "type": kind, "line": line_no})
+                for match in re.finditer(pattern, source):
+                    cpp_name = match.group(1) if kind != "method" else match.group(2)
+                    line_no = source[: match.start()].count("\n") + 1
+                    cpp_matches.append({"name": cpp_name, "type": kind, "line": line_no})
             seen = set()
             unique = []
-            for m in sorted(matches, key=lambda x: x["line"]):
-                key = (m["name"], m["line"])
+            for item in sorted(cpp_matches, key=lambda x: x["line"]):
+                key = (item["name"], item["line"])
                 if key not in seen:
                     seen.add(key)
-                    unique.append(m)
+                    unique.append(item)
             return unique
         elif _is_typescript(filepath):
-            matches = []
+            ts_matches: list[dict[str, Any]] = []
             try:
                 source = _read_file(filepath)
             except OSError:
-                return matches
+                return ts_matches
             clean = _strip_ts_comments_and_strings(source)
             for pattern, kind in TS_DEF_PATTERNS:
-                for m in re.finditer(pattern, clean, re.MULTILINE):
-                    name = ""
-                    for g in range(1, m.lastindex + 1):
-                        val = m.group(g)
+                for match in re.finditer(pattern, clean, re.MULTILINE):
+                    ts_name = ""
+                    for g in range(1, (match.lastindex or 0) + 1):
+                        val = match.group(g)
                         if val:
-                            name = val
+                            ts_name = val
                             break
-                    line_no = source[: m.start()].count("\n") + 1
-                    matches.append({"name": name, "type": kind, "line": line_no})
+                    line_no = source[: match.start()].count("\n") + 1
+                    ts_matches.append({"name": ts_name, "type": kind, "line": line_no})
             seen = set()
             unique = []
-            for m in sorted(matches, key=lambda x: x["line"]):
-                key = (m["name"], m["line"])
+            for item in sorted(ts_matches, key=lambda x: x["line"]):
+                key = (item["name"], item["line"])
                 if key not in seen:
                     seen.add(key)
-                    unique.append(m)
+                    unique.append(item)
             return unique
         return []
 
-    def find_callees(self, symbol, lang="all"):
+    def find_callees(self, symbol: str, lang: str = "all") -> list[dict[str, Any]]:
         """Find what functions/methods are called by a definition (Python only)."""
         # Find the definition first
         defs = self.find_definition(symbol, lang)
@@ -675,7 +679,7 @@ class ImpactAnalyzer:
                         elif isinstance(child, ast.Call):
                             callee_nodes.append(child)
                     for child in callee_nodes:
-                        in_nested = any(start <= child.lineno <= end for start, end in nested_ranges)
+                        in_nested = any((start or 0) <= (child.lineno or 0) <= (end or 0) for start, end in nested_ranges)
                         if in_nested:
                             continue
                         if isinstance(child.func, ast.Name):
@@ -700,7 +704,7 @@ class ImpactAnalyzer:
 
         return sorted(callees, key=lambda r: r["line"])
 
-    def infer_symbol(self, filepath, line_no):
+    def infer_symbol(self, filepath: str, line_no: int) -> str | None:
         """Infer symbol name at a given file:line.
 
         Priority: function/method call > class/function def > identifier.
@@ -810,12 +814,12 @@ class ImpactAnalyzer:
 # ─── Formatters ───────────────────────────────────────────────────────────
 
 
-def _fmt_line_count(count):
+def _fmt_line_count(count: int) -> str:
     s = "s" if count != 1 else ""
     return f"{count} occurrence{s}"
 
 
-def format_pretty(symbol, defs, refs, tests, callees, root):
+def format_pretty(symbol: str, defs: list[dict[str, Any]], refs: list[dict[str, Any]], tests: list[dict[str, Any]], callees: list[dict[str, Any]], root: str | Path) -> str:
     """Human-readable output."""
     lines = []
     lines.append(f"impact: `{symbol}`")
@@ -869,7 +873,7 @@ def format_pretty(symbol, defs, refs, tests, callees, root):
     return "\n".join(lines)
 
 
-def format_json(symbol, defs, refs, tests, callees, root):
+def format_json(symbol: str, defs: list[dict[str, Any]], refs: list[dict[str, Any]], tests: list[dict[str, Any]], callees: list[dict[str, Any]], root: str | Path) -> str:
     """JSON output for plugin."""
     return json.dumps(
         {
@@ -887,7 +891,7 @@ def format_json(symbol, defs, refs, tests, callees, root):
 # ─── CLI ──────────────────────────────────────────────────────────────────
 
 
-def main():
+def main() -> int:
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
         print(__doc__.strip())
         return 0

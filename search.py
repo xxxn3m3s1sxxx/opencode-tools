@@ -14,6 +14,8 @@ Examples:
   search "TODO|FIXME" --context 2
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -54,7 +56,7 @@ def _rg_search(pattern: str, path: str, include: str | None, context: int) -> li
 
 
 def _parse_rg_output(output: str, context: int) -> list[dict]:
-    results = []
+    results: list[dict] = []
     current_group = None
     current_lnum = 0
     current_file = ""
@@ -91,7 +93,7 @@ def _parse_rg_output(output: str, context: int) -> list[dict]:
 
 
 def _py_search(pattern: str, path: str, include: str | None, context: int) -> list[dict]:
-    results = []
+    results: list[dict] = []
     if len(pattern) > 1000:
         print(f"Pattern too long ({len(pattern)} chars, max 1000)", file=sys.stderr)
         return []
@@ -105,7 +107,7 @@ def _py_search(pattern: str, path: str, include: str | None, context: int) -> li
     if os.path.isfile(path):
         files = [os.path.basename(path)]
         root = os.path.dirname(path)
-        _dirs = []
+        _dirs: list[str] = []
         for f in sorted(files):
             fpath = path
             if include and not _match_glob(f, include):
@@ -180,7 +182,7 @@ def _match_glob(filename: str, pattern: str) -> bool:
     return filename.endswith(pattern.lstrip("*"))
 
 
-def main():
+def main() -> int:
     args = sys.argv[1:]
     if not args or args[0] in ("--help", "-h"):
         print(__doc__.strip())

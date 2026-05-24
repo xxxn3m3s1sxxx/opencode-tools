@@ -16,11 +16,14 @@ Examples:
   graph --circular              Find cycles
 """
 
+from __future__ import annotations
+
 import json
 import os
 import re
 import sys
 from collections import defaultdict
+from typing import Any
 
 from common import VERSION, SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
 
@@ -125,7 +128,7 @@ def _parse_imports(source: str, ext: str) -> list[str]:
 # ─── Graph Building ──────────────────────────────────────────────────────
 
 
-def build_graph(root: str) -> dict[str, dict[str, list[str]]]:
+def build_graph(root: str) -> dict[str, Any]:
     files = _walk_files(root)
     node_map: dict[str, str] = {}
     edges: dict[str, list[str]] = defaultdict(list)
@@ -155,7 +158,7 @@ def build_graph(root: str) -> dict[str, dict[str, list[str]]]:
     }
 
 
-def find_deps(graph: dict, file_rel: str) -> dict:
+def find_deps(graph: dict[str, Any], file_rel: str) -> dict[str, Any]:
     edges = graph["edges"]
     rev = graph["reverse"]
     return {
@@ -165,7 +168,7 @@ def find_deps(graph: dict, file_rel: str) -> dict:
     }
 
 
-def find_tree(graph: dict, file_rel: str, max_depth: int = 5) -> list:
+def find_tree(graph: dict[str, Any], file_rel: str, max_depth: int = 5) -> list[dict[str, Any]]:
     edges = graph["edges"]
     result = []
 
@@ -186,7 +189,7 @@ def find_tree(graph: dict, file_rel: str, max_depth: int = 5) -> list:
     return result
 
 
-def find_cycles(graph: dict) -> list[list[str]]:
+def find_cycles(graph: dict[str, Any]) -> list[list[str]]:
     edges = graph["edges"]
     all_files = graph["files"]
     cycles = []
@@ -211,7 +214,7 @@ def find_cycles(graph: dict) -> list[list[str]]:
     return cycles
 
 
-def stats(graph: dict) -> dict:
+def stats(graph: dict[str, Any]) -> dict[str, Any]:
     edges = graph["edges"]
     rev = graph["reverse"]
     n_files = len(graph["files"])
@@ -245,7 +248,7 @@ def stats(graph: dict) -> dict:
     }
 
 
-def main():
+def main() -> int:
     args = sys.argv[1:]
     if not args or args[0] in ("--help", "-h"):
         print(__doc__.strip())

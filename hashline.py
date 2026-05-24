@@ -22,6 +22,8 @@ Edit format (stdin or file):
   - 30hi..35zz     delete range
 """
 
+from __future__ import annotations
+
 import hashlib
 import itertools
 import re
@@ -29,7 +31,6 @@ import sys
 
 import string
 from pathlib import Path
-
 from common import VERSION, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
@@ -412,10 +413,10 @@ def parse_hashline_input(text: str, default_path: str | None = None) -> list[tup
         @@ another/file
         ...edits...
     """
-    sections = []
+    sections: list[tuple[str, str]] = []
     lines = text.split("\n")
     current_path = None
-    current_lines = []
+    current_lines: list[str] = []
 
     def flush():
         if current_path is not None and current_lines:
@@ -689,14 +690,14 @@ def hashline_diff_output(diff: str, file_path: str = "path") -> str:
     return f"@@ {file_path}\n{diff}"
 
 
-def main():
+def main() -> int:
     if len(sys.argv) >= 2 and sys.argv[1] in ("--version", "-V"):
         print(f"hashline.py {VERSION}")
-        sys.exit(0)
+        return 0
 
     if len(sys.argv) < 2 or sys.argv[1] in ("--help", "-h", "-?"):
         print(__doc__, file=sys.stderr)
-        sys.exit(0 if sys.argv[1:] else 1)
+        return 0 if sys.argv[1:] else 1
 
     command = sys.argv[1]
     args = sys.argv[2:]
@@ -712,17 +713,18 @@ def main():
     if command not in commands:
         print(f"Unknown command: {command}", file=sys.stderr)
         print("Available: {}{}".format(", ".join(commands), ", --version"), file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     try:
         commands[command](args)
+        return 0
     except HashlineError as e:
         print(e.display_message if hasattr(e, "display_message") and e.display_message else str(e), file=sys.stderr)
-        sys.exit(1)
+        return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

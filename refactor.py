@@ -11,11 +11,14 @@ Uses Python AST for Python files, regex word-boundary for TS/JS files.
 Safer than word-boundary rename: no false positives on partial matches.
 """
 
+from __future__ import annotations
+
 import ast
 import json
 import os
 import re
 import sys
+from typing import Any
 
 from common import VERSION, PY_SOURCE_EXTS, TS_SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
 
@@ -43,7 +46,7 @@ def _find_name_in_line(line: str, col_start: int, symbol: str) -> int | None:
     return pos
 
 
-def _find_ast_references(tree: ast.AST, symbol: str, source_lines: list[str]) -> list[dict]:
+def _find_ast_references(tree: ast.AST, symbol: str, source_lines: list[str]) -> list[dict[str, Any]]:
     """Find all AST nodes matching the symbol, using source text for exact positions."""
     refs = []
     for node in ast.walk(tree):
@@ -195,9 +198,9 @@ def _strip_ts_content(content: str) -> str:
     return "".join(result)
 
 
-def _find_ts_refs(content: str, symbol: str) -> list[dict]:
+def _find_ts_refs(content: str, symbol: str) -> list[dict[str, Any]]:
     """Find TS/JS symbol references using regex (word-boundary matching)."""
-    refs = []
+    refs: list[dict[str, Any]] = []
     lines = content.split("\n")
     symbol_escaped = re.escape(symbol)
     word_pat = re.compile(r"(?<![\w$.])" + symbol_escaped + r"(?![\w$])")
@@ -232,13 +235,14 @@ def _find_ts_refs(content: str, symbol: str) -> list[dict]:
     for lineno, line in enumerate(lines, 1):
         # Check definition patterns
         for pat, kind in def_pats:
-            m = re.search(pat, line)
-            if m:
+            m2 = re.search(pat, line)
+            if m2:
                 for r in refs:
                     if r["lineno"] == lineno:
+                        r_col: Any = r["col_offset"]
                         try:
-                            col = line.index(symbol, r["col_offset"])
-                            if col == r["col_offset"]:
+                            col = line.index(symbol, r_col)
+                            if col == r_col:
                                 r["kind"] = kind
                         except ValueError:
                             pass
@@ -249,10 +253,14 @@ def _find_ts_refs(content: str, symbol: str) -> list[dict]:
                     r["kind"] = "import"
 
     # Deduplicate by position
-    seen = set()
-    return [
-        r for r in refs if (r["lineno"], r["col_offset"]) not in seen and not seen.add((r["lineno"], r["col_offset"]))
-    ]
+    seen_pos = set()
+    unique: list[dict[str, Any]] = []
+    for r in refs:
+        key = (r["lineno"], r["col_offset"])
+        if key not in seen_pos:
+            seen_pos.add(key)
+            unique.append(r)
+    return unique
 
 
 def _find_refs_in_file(filepath: str, symbol: str) -> tuple[str | None, list[dict]]:
@@ -306,7 +314,7 @@ def format_results(occurs: list[dict], root: str) -> str:
     return "\n".join(lines_out)
 
 
-def main():
+def main() -> int:
     args = sys.argv[1:]
     if not args or args[0] in ("--help", "-h"):
         print(__doc__.strip())

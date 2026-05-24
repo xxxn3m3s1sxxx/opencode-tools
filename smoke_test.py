@@ -16,7 +16,10 @@ def _run(*args):
     env["PYTHONUTF8"] = "1"
     return subprocess.run(
         [sys.executable, *args],
-        capture_output=True, text=True, env=env, cwd=TOOLS_DIR,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=TOOLS_DIR,
     )
 
 
@@ -204,7 +207,7 @@ def main():
         t()
 
     total = PASS + FAIL
-    print(f"\n{'='*40}")
+    print(f"\n{'=' * 40}")
     print(f"Results: {PASS}/{total} passed, {FAIL} failed")
     return 0 if FAIL == 0 else 1
 

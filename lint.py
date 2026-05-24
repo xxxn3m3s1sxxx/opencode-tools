@@ -12,6 +12,8 @@ Usage:
 Auto-detects: npm run lint, npm run typecheck, ruff, eslint, tsc --noEmit, mypy, pylint
 """
 
+from __future__ import annotations
+
 import json
 import os
 import platform
@@ -28,7 +30,7 @@ _NPX = "npx.cmd" if platform.system() == "Windows" else "npx"
 PARSERS: list[tuple[str, re.Pattern, dict]] = []
 
 
-def _register(name: str, pattern: str, fields: dict):
+def _register(name: str, pattern: str, fields: dict) -> None:
     PARSERS.append((name, re.compile(pattern), fields))
 
 
@@ -138,7 +140,7 @@ def _parse_output(output: str) -> list[dict]:
     return results
 
 
-def main():
+def main() -> int:
     args = sys.argv[1:]
     if not args or args[0] in ("--help", "-h"):
         print(__doc__.strip())

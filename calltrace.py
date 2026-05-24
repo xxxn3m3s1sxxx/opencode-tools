@@ -18,18 +18,27 @@ Options:
 Exit code: 0 = found, 1 = symbol not found
 """
 
+from __future__ import annotations
+
 import ast
 import json
 import os
 import re
 import sys
 
+from typing import Any
+
 from common import VERSION, reconfigure_stdout_stderr
 
 reconfigure_stdout_stderr()
 
+ImpactAnalyzer: Any = None
 try:
-    from impact import ImpactAnalyzer, _is_python, _grep_find_references
+    from impact import ImpactAnalyzer as _IA
+    ImpactAnalyzer = _IA
+    from impact import _is_python as _is_python_fn, _grep_find_references as _grep_refs_fn
+    _is_python = _is_python_fn
+    _grep_find_references = _grep_refs_fn
 except ImportError:
     # Fallback: import from explicit path (sibling file)
     _impact_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "impact.py")
@@ -43,22 +52,18 @@ except ImportError:
             ImpactAnalyzer = _mod.ImpactAnalyzer
             _is_python = _mod._is_python
             _grep_find_references = _mod._grep_find_references
-        else:
-            ImpactAnalyzer = None
-    else:
-        ImpactAnalyzer = None
 
 
-def _read_file(filepath):
+def _read_file(filepath: str) -> str:
     """Read file, stripping BOM and normalizing CRLF to LF."""
     with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
         return f.read().replace("\r\n", "\n")
 
 
-_ENCLOSING_CACHE: dict[str, dict] = {}
+_ENCLOSING_CACHE: dict[str, dict[int, str]] = {}
 
 
-def _find_enclosing_function(filepath, line_no):
+def _find_enclosing_function(filepath: str, line_no: int) -> str | None:
     """Find the name of the function enclosing a given line (Python only)."""
     if filepath in _ENCLOSING_CACHE:
         tree_info = _ENCLOSING_CACHE[filepath]
@@ -72,11 +77,11 @@ def _find_enclosing_function(filepath, line_no):
         tree_info = {}
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
+                if node.lineno is not None and node.end_lineno is not None:
                     for ln in range(node.lineno, node.end_lineno + 1):
                         tree_info[ln] = node.name
             elif isinstance(node, ast.ClassDef):
-                if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
+                if node.lineno is not None and node.end_lineno is not None:
                     for ln in range(node.lineno, node.end_lineno + 1):
                         if ln not in tree_info:
                             tree_info[ln] = node.name
@@ -84,9 +89,9 @@ def _find_enclosing_function(filepath, line_no):
     return tree_info.get(line_no)
 
 
-def _grep_occurrences(filepath, symbol):
+def _grep_occurrences(filepath: str, symbol: str) -> list[dict[str, Any]]:
     """Find all occurrences of symbol using word-boundary grep."""
-    matches = []
+    matches: list[dict[str, Any]] = []
     try:
         source = _read_file(filepath)
         lines = source.split("\n") if source else []
@@ -106,9 +111,9 @@ def _grep_occurrences(filepath, symbol):
     return matches
 
 
-def _build_index(files):
+def _build_index(files: list[str]) -> dict[str, list[dict[str, Any]]]:
     """Build inverted index: symbol -> [(file, line, context)] from source files."""
-    idx = {}
+    idx: dict[str, list[dict[str, Any]]] = {}
     for fp in files:
         try:
             source = _read_file(fp)
@@ -132,7 +137,7 @@ def _build_index(files):
     return idx
 
 
-def _find_callers_from_index(analyzer, symbol, depth, lang, idx, visited=None):
+def _find_callers_from_index(analyzer: Any, symbol: str, depth: int, lang: str, idx: dict[str, list[dict[str, Any]]], visited: set[str] | None = None) -> list[dict[str, Any]]:
     """Find who calls a given symbol, using pre-built inverted index."""
     if visited is None:
         visited = set()
@@ -175,7 +180,7 @@ def _find_callers_from_index(analyzer, symbol, depth, lang, idx, visited=None):
     return results
 
 
-def _find_callers(analyzer, symbol, depth, lang, visited=None, files=None):
+def _find_callers(analyzer: Any, symbol: str, depth: int, lang: str, visited: set[str] | None = None, files: list[str] | None = None) -> list[dict[str, Any]]:
     """Find who calls a given symbol, recursively up to depth."""
     if visited is None:
         visited = set()
@@ -214,7 +219,7 @@ def _find_callers(analyzer, symbol, depth, lang, visited=None, files=None):
     return results
 
 
-def _find_call_chain(analyzer, symbol, depth, lang, visited=None, chain=None):
+def _find_call_chain(analyzer: Any, symbol: str, depth: int, lang: str, visited: set[str] | None = None, chain: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     """Build call chain recursively (callees only, forward)."""
     if visited is None:
         visited = set()
@@ -240,11 +245,11 @@ def _find_call_chain(analyzer, symbol, depth, lang, visited=None, chain=None):
     return chain
 
 
-def _tree_char(i, total):
+def _tree_char(i: int, total: int) -> str:
     return "└── " if i == total - 1 else "├── "
 
 
-def format_pretty(symbol, callers, chain, root, depth):
+def format_pretty(symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int) -> str:
     lines = []
     lines.append(f"trace: `{symbol}`")
     lines.append(f"  depth: {depth}")
@@ -278,7 +283,7 @@ def format_pretty(symbol, callers, chain, root, depth):
     return "\n".join(lines)
 
 
-def format_viz(symbol, callers, chain, root, depth):
+def format_viz(symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int) -> str:
     """ASCII tree visualization of call chain."""
     lines = []
     lines.append(f"trace: `{symbol}` (viz, depth={depth})")
@@ -286,7 +291,7 @@ def format_viz(symbol, callers, chain, root, depth):
 
     if chain:
         # Build parent->children map
-        children_of = {}
+        children_of: dict[str, list[str]] = {}
         for level in chain:
             sym = level["symbol"]
             if sym not in children_of:
@@ -296,7 +301,7 @@ def format_viz(symbol, callers, chain, root, depth):
                 if c not in children_of:
                     children_of[c] = []
 
-        def _append_tree(node, prefix, is_last, visited):
+        def _append_tree(node: str, prefix: str, is_last: bool, visited: set[str]) -> None:
             if node in visited:
                 lines.append(f"{prefix}{'└── ' if is_last else '├── '}{node} (cycle)")
                 return
@@ -313,7 +318,7 @@ def format_viz(symbol, callers, chain, root, depth):
 
     if callers:
         # Build callee->callers map
-        unique = {}
+        unique: dict[str, list[dict[str, Any]]] = {}
         for c in callers:
             callee = c["callee"]
             if callee not in unique:
@@ -338,7 +343,7 @@ def format_viz(symbol, callers, chain, root, depth):
     return "\n".join(lines)
 
 
-def format_json(symbol, callers, chain, root, depth):
+def format_json(symbol: str, callers: list[dict[str, Any]], chain: list[dict[str, Any]], root: str | os.PathLike[str], depth: int) -> str:
     return json.dumps(
         {
             "symbol": symbol,
@@ -351,7 +356,7 @@ def format_json(symbol, callers, chain, root, depth):
     )
 
 
-def main():
+def main() -> int:
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
         print(__doc__.strip())
         return 0
