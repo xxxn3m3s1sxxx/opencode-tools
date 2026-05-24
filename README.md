@@ -1,7 +1,7 @@
 # OpenCode Tools — Low-Latency Repository Analysis & AI Coding Assistants
 
-[![Tools](https://img.shields.io/static/v1?label=tools&message=13&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Tests](https://img.shields.io/static/v1?label=tests&message=366%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Tools](https://img.shields.io/static/v1?label=tools&message=10&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Tests](https://img.shields.io/static/v1?label=tests&message=280%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Speed](https://img.shields.io/static/v1?label=parse&message=5000%2B%20files%20in%20%3C0.3s&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Python](https://img.shields.io/static/v1?label=python&message=3.10%2B&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)](LICENSE)
@@ -9,9 +9,9 @@
 [![Linux](https://img.shields.io/static/v1?label=linux&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 [![macOS](https://img.shields.io/static/v1?label=macos&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 
-**13 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
+**10 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
 
-After `pip install -e .`, every tool becomes a **global CLI command** — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `trace`, `changelog`, `hashline`. All via `pyproject.toml` entry points, zero shell config needed.
+After `pip install -e .`, every tool becomes a **global CLI command** — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `calltrace`, `changelog`, `hashline`. All via `pyproject.toml` entry points, zero shell config needed.
 
 > ⚡ **Parses 5000+ files in under 0.3 seconds** — `graph.py` maps imports, dependents, and cycles across 50k+ line codebases. UNC-timeout-safe path handling, sub-100ms cold starts, cross-platform since day one.
 
@@ -25,7 +25,7 @@ cd opencode-tools
 pip install -e .
 ```
 
-That's it. All 13 tools are now available as **global CLI commands** via `pyproject.toml` entry points — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `trace`, `changelog`, `hashline`. No aliases, no PATH hacking.
+That's it. All 10 tools are now available as **global CLI commands** via `pyproject.toml` entry points — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `calltrace`, `changelog`, `hashline`. No aliases, no PATH hacking.
 
 ## Performance
 
@@ -34,7 +34,7 @@ That's it. All 13 tools are now available as **global CLI commands** via `pyproj
 | `graph` — 5500 files (node_modules + dist) | 58.2s (UNC timeout) | **0.27s** | **215× faster** |
 | `search` — regex on 50k+ line codebase | 12.4s | **0.18s** | **69× faster** |
 | `impact` — symbol lookup on monorepo | 8.7s | **0.09s** | **97× faster** |
-| All 366 tests (CI, 3 OS × 3 Python) | — | **<90s** | — |
+| All 280+ tests + smoke test (CI, 3 OS × 3 Python) | — | **<90s** | — |
 
 Key optimizations: UNC-safe path handling (no network timeout hangs), OOM guard (skips files >50MB), `\b` word-boundary rename with multi-language support, zero-import Python stdlib engines.
 
@@ -112,7 +112,7 @@ cp *.py /path/to/project/
 |------|------|-------------|
 | `impact` | impact.py | Symbol analysis — definitions, references, tests, callers. Python AST + C++ heuristics |
 | `verify` | verify.py | Post-edit verification — confirm content, check lines, old/new |
-| `trace` | trace.py | Recursive call chain — follow execution paths up/down |
+| `calltrace` | calltrace.py | Recursive call chain — follow execution paths up/down |
 | `graph` | graph.py | File-level dependency graph — imports, dependents, cycles. Python/TS/C++ |
 | `search` | search.py | Rich grep — regex, file filters, context lines, JSON output |
 | `lint` | lint.py | Structured lint — ruff/eslint/tsc/mypy/pylint output parsing |
@@ -143,41 +143,44 @@ python test_refactor.py
 python deeper_tests.py
 python regression_tests.py
 python stress_test.py
+python smoke_test.py
 ```
 
-## Test Status (366+ tests)
+## Test Status (280+ tests)
 
 | Suite | Tests | Status |
 |-------|-------|--------|
 | hashline | 42 core + 22 regression + 39 stress + 27 deep = 130 | ✅ All pass |
 | impact | 63 | ✅ All pass |
 | verify | 48 | ✅ All pass |
-| trace | 28 | ✅ All pass |
+| calltrace | 28 | ✅ All pass |
 | graph | 20 | ✅ All pass |
 | changelog | 25 | ✅ All pass |
 | search | 14 | ✅ All pass |
 | lint | 17 | ✅ All pass |
 | refactor | 21 | ✅ All pass |
+| smoke | 39 (self-test all tools) | ✅ All pass |
 
 ## Project Structure
 
 ```
 opencode-tools/
 ├── utils.ts              # Shared utilities
-├── hashline.py/.ts       # Hash-anchored editing (v0.3.0)
-├── impact.py/.ts         # Impact analysis (v0.1.1)
-├── verify.py/.ts         # Post-edit verification (v0.1.0)
-├── trace.py/.ts          # Recursive call chain (v0.1.0)
-├── rename.py/.ts         # Word-boundary rename (v0.1.0)
-├── graph.py/.ts          # Dependency graph (v0.1.0)
-├── changelog.py/.ts      # Formatted git log (v0.1.0)
-├── search.py/.ts         # Rich grep (v0.1.0)
-├── lint.py/.ts           # Lint runner (v0.1.0)
-├── refactor.py/.ts       # AST-based rename (v0.1.0)
+├── hashline.py/.ts       # Hash-anchored editing (v0.4.0)
+├── impact.py/.ts         # Impact analysis (v0.4.0)
+├── verify.py/.ts         # Post-edit verification (v0.4.0)
+├── calltrace.py/.ts      # Recursive call chain (v0.4.0)
+├── rename.py/.ts         # Word-boundary rename (v0.4.0)
+├── graph.py/.ts          # Dependency graph (v0.4.0)
+├── changelog.py/.ts      # Formatted git log (v0.4.0)
+├── search.py/.ts         # Rich grep (v0.4.0)
+├── lint.py/.ts           # Lint runner (v0.4.0)
+├── refactor.py/.ts       # AST-based rename (v0.4.0)
 ├── test_*.py             # Test suites
 ├── deeper_tests.py       # 27 deep edge tests
 ├── regression_tests.py   # 22 regression tests
 ├── stress_test.py        # 39 stress tests
+├── smoke_test.py          # Self-test all 10 tools (39 checks)
 ├── install.sh            # Linux/macOS installer
 ├── install.ps1           # Windows PowerShell installer
 ├── install.bat           # Windows cmd installer
