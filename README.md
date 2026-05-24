@@ -1,17 +1,17 @@
 # OpenCode Tools — Low-Latency Repository Analysis & AI Coding Assistants
 
-[![Tools](https://img.shields.io/static/v1?label=tools&message=10&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Tests](https://img.shields.io/static/v1?label=tests&message=280%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Tools](https://img.shields.io/static/v1?label=tools&message=12&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Tests](https://img.shields.io/static/v1?label=tests&message=320%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![Speed](https://img.shields.io/static/v1?label=parse&message=5000%2B%20files%20in%20%3C0.3s&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
-[![Python](https://img.shields.io/static/v1?label=python&message=3.10%2B&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
+[![Python](https://img.shields.io/static/v1?label=python&message=3.11%2B&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)](LICENSE)
 [![Windows](https://img.shields.io/static/v1?label=windows&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 [![Linux](https://img.shields.io/static/v1?label=linux&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 [![macOS](https://img.shields.io/static/v1?label=macos&message=passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions)
 
-**10 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
+**12 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, health summary, workspace snapshots, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
 
-After `pip install -e .`, every tool becomes a **global CLI command** — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `calltrace`, `changelog`, `hashline`. All via `pyproject.toml` entry points, zero shell config needed.
+After `pip install -e .`, every tool becomes a **global CLI command** — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `calltrace`, `changelog`, `hashline`, `health`, `snapshot`. All via `pyproject.toml` entry points, zero shell config needed.
 
 > ⚡ **Parses 5000+ files in under 0.3 seconds** — `graph.py` maps imports, dependents, and cycles across 50k+ line codebases. UNC-timeout-safe path handling, sub-100ms cold starts, cross-platform since day one.
 
@@ -25,7 +25,7 @@ cd opencode-tools
 pip install -e .
 ```
 
-That's it. All 10 tools are now available as **global CLI commands** via `pyproject.toml` entry points — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `calltrace`, `changelog`, `hashline`. No aliases, no PATH hacking.
+That's it. All 12 tools are now available as **global CLI commands** via `pyproject.toml` entry points — `graph`, `impact`, `lint`, `refactor`, `rename`, `search`, `verify`, `calltrace`, `changelog`, `hashline`, `health`, `snapshot`. No aliases, no PATH hacking.
 
 ## Performance
 
@@ -64,9 +64,15 @@ Key optimizations: UNC-safe path handling (no network timeout hangs), OOM guard 
 | | `rename old_name new_name --lang py` | Only Python files |
 | | `refactor foo bar` | **AST-based** rename — no false positives on partial matches |
 | | `refactor foo bar --dry-run` | Preview before renaming |
+| **Health** | `health` | Full project health — tests, mypy, ruff, code metrics |
+| | `health --quick` | Skip running tests (faster) |
+| | `health --check` | Exit 0 only if all checks pass |
 | **History** | `changelog` | Recent commits with category grouping |
 | | `changelog -n 50` | Last 50 commits |
 | | `changelog --since 2024-01-01` | Commits since date |
+| **Workspace** | `snapshot` | Save workspace snapshot to `.opencode/snapshots/` |
+| | `snapshot --show` | Print snapshot to stdout |
+| | `snapshot --mine` | Save + file into MemPalace |
 
 ## Quick Install
 
@@ -123,6 +129,12 @@ cp *.py /path/to/project/
 | `rename` | rename.py | Word-boundary `\b` symbol rename across all source files |
 | `refactor` | refactor.py | **AST-based** rename (Python) — no false positives on partial matches |
 
+### Health & Workspace
+| Tool | File | Description |
+|------|------|-------------|
+| `health` | health.py | Project health summary — pytest, mypy, ruff, code metrics |
+| `snapshot` | snapshot.py | Capture workspace context for MemPalace auto-save |
+
 ### History
 | Tool | File | Description |
 |------|------|-------------|
@@ -146,7 +158,7 @@ python stress_test.py
 python smoke_test.py
 ```
 
-## Test Status (280+ tests)
+## Test Status (320+ tests)
 
 | Suite | Tests | Status |
 |-------|-------|--------|
@@ -159,7 +171,9 @@ python smoke_test.py
 | search | 14 | ✅ All pass |
 | lint | 17 | ✅ All pass |
 | refactor | 21 | ✅ All pass |
-| smoke | 39 (self-test all tools) | ✅ All pass |
+| health | — (runs live checks) | ✅ All pass |
+| snapshot | — (integration) | ✅ All pass |
+| smoke | 42 (self-test all 12 tools) | ✅ All pass |
 
 ## Project Structure
 
@@ -176,11 +190,13 @@ opencode-tools/
 ├── search.py/.ts         # Rich grep (v0.4.0)
 ├── lint.py/.ts           # Lint runner (v0.4.0)
 ├── refactor.py/.ts       # AST-based rename (v0.4.0)
+├── health.py             # Health summary — tests, lint, metrics (v0.4.0)
+├── snapshot.py           # Workspace snapshot for MemPalace (v0.4.0)
 ├── test_*.py             # Test suites
 ├── deeper_tests.py       # 27 deep edge tests
 ├── regression_tests.py   # 22 regression tests
 ├── stress_test.py        # 39 stress tests
-├── smoke_test.py          # Self-test all 10 tools (39 checks)
+├── smoke_test.py          # Self-test all 12 tools (42+ checks)
 ├── install.sh            # Linux/macOS installer
 ├── install.ps1           # Windows PowerShell installer
 ├── install.bat           # Windows cmd installer
