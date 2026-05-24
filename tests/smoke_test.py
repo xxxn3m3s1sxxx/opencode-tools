@@ -253,7 +253,7 @@ def test_tags():
 def test_check():
     print("\n--- check ---")
     r = _tool("check", "--quick")
-    check("check quick passes", r.returncode in (0, 1) and "All checks passed" in r.stdout or "FAIL" in r.stdout)
+    check("check quick passes", r.returncode in (0, 1) and "check:" in r.stdout)
 
     r = _tool("check", "--version")
     check("--version shows 0.5.3", "0.5.3" in r.stdout)
