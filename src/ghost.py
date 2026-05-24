@@ -46,20 +46,32 @@ def _unused_py(filepath: str, min_uses: int) -> list[dict[str, Any]]:
 
     definitions: dict[str, int] = defaultdict(int)
     references: dict[str, int] = defaultdict(int)
+    def_kinds: dict[str, str] = {}
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             definitions[node.name] += 1
+            def_kinds[node.name] = "function"
         elif isinstance(node, ast.ClassDef):
             definitions[node.name] += 1
+            def_kinds[node.name] = "class"
         elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
             references[node.id] += 1
         elif isinstance(node, ast.Attribute) and isinstance(node.ctx, ast.Load):
             references[node.attr] += 1
 
+    _TEST_LIFECYCLE = {
+        "setUp", "tearDown", "setUpClass", "tearDownClass",
+        "setUpModule", "tearDownModule",
+    }
+
     for name, def_count in definitions.items():
         ref_count = references.get(name, 0)
         if name.startswith("_") and not name.startswith("__"):
+            continue
+        if name in _TEST_LIFECYCLE or name.startswith("test_"):
+            continue
+        if name.startswith("Test"):
             continue
         if name in {"main"}:
             continue
@@ -67,7 +79,7 @@ def _unused_py(filepath: str, min_uses: int) -> list[dict[str, Any]]:
             unused.append(
                 {
                     "name": name,
-                    "kind": "function" if isinstance(tree, ast.AST) else "unknown",
+                    "kind": def_kinds.get(name, "function"),
                     "file": filepath,
                     "definitions": def_count,
                     "references": ref_count,
