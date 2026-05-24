@@ -66,6 +66,8 @@ EXPECTED_PY_ENGINES = [
     "ghost.py",
 ]
 
+EXPECTED_SHARED = ["common.py"]
+
 
 def check(desc, cond, detail=""):
     global PASS, FAIL
@@ -97,6 +99,11 @@ def _ensure_local_files(opcode_dir, proj_dir):
     if os.path.exists(src):
         shutil.copy2(src, os.path.join(opcode_dir, "plugins", "calltrace.py"))
         shutil.copy2(src, os.path.join(proj_dir, "calltrace.py"))
+    # common.py (shared dependency)
+    src = os.path.join(TOOLS_DIR, "common.py")
+    if os.path.exists(src):
+        shutil.copy2(src, os.path.join(opcode_dir, "plugins", "common.py"))
+        shutil.copy2(src, os.path.join(proj_dir, ".opencode", "plugins", "common.py"))
 
 
 def test_bat_local_mode():
@@ -171,6 +178,16 @@ def test_bat_local_copies_plugins():
             check(
                 f"bat local .opencode/plugins: {fn}", os.path.exists(os.path.join(proj_dir, ".opencode", "plugins", fn))
             )
+
+        # Verify common.py in both locations
+        check(
+            "bat local common.py in plugins",
+            os.path.exists(os.path.join(opcode_dir, "plugins", "common.py")),
+        )
+        check(
+            "bat local common.py in .opencode/plugins",
+            os.path.exists(os.path.join(proj_dir, ".opencode", "plugins", "common.py")),
+        )
 
 
 def test_ps1_offline_mode():

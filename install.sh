@@ -39,6 +39,18 @@ echo ""
 # Create dirs
 mkdir -p "$PLUGIN_DIR"
 
+# common.py (shared dependency)
+if $LOCAL && [ -f "$SCRIPT_DIR/common.py" ]; then
+  cp "$SCRIPT_DIR/common.py" "$PLUGIN_DIR/common.py"
+  echo "  [common] common.py -> $PLUGIN_DIR/common.py (local)"
+elif [ -f "common.py" ]; then
+  cp "common.py" "$PLUGIN_DIR/common.py"
+  echo "  [common] common.py -> $PLUGIN_DIR/common.py (local)"
+else
+  echo "  [common] common.py -> downloading..."
+  curl -fsSL "$REPO/common.py" -o "$PLUGIN_DIR/common.py" || echo "  [WARN] common.py download failed"
+fi
+
 # Install plugins (.ts)
 for tool in $TOOLS; do
   tsfile="$tool"
@@ -60,6 +72,15 @@ done
 # Install to .opencode/plugins/ (project-local, auto-discovered)
 LOCAL_PLUGIN_DIR="$PROJECT/.opencode/plugins"
 mkdir -p "$LOCAL_PLUGIN_DIR"
+if [ ! -f "$LOCAL_PLUGIN_DIR/common.py" ]; then
+  if $LOCAL && [ -f "$SCRIPT_DIR/common.py" ]; then
+    cp "$SCRIPT_DIR/common.py" "$LOCAL_PLUGIN_DIR/common.py"
+  elif [ -f "common.py" ]; then
+    cp "common.py" "$LOCAL_PLUGIN_DIR/common.py"
+  else
+    curl -fsSL "$REPO/common.py" -o "$LOCAL_PLUGIN_DIR/common.py" || true
+  fi
+fi
 for tool in $TOOLS; do
   tsfile="$tool"
   [ "$tool" = "trace" ] && tsfile="calltrace"

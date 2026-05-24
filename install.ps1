@@ -83,9 +83,11 @@ if (-not (Test-Path $PluginDir)) { New-Item -ItemType Directory -Path $PluginDir
 Write-Host "  [utils] plugin..."
 Install-File "utils.ts" "$PluginDir\utils.ts" "utils.ts"
 
+# common.py (shared dependency)
+Write-Host "  [common] plugin..."
+Install-File "common.py" "$PluginDir\common.py" "common.py"
+
 foreach ($tool in $Tools) {
-    $tsfile = if ($tool -eq "trace") { "calltrace" } else { $tool }
-    Write-Host "  [$tool] plugin..."
     Install-File "$tsfile.ts" "$PluginDir\$tsfile.ts" "$tsfile.ts"
 }
 

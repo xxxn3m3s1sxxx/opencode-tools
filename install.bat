@@ -54,6 +54,15 @@ echo.
 REM --- Install plugins ---
 if not exist "%OPCODE_DIR%\plugins" mkdir "%OPCODE_DIR%\plugins"
 
+REM --- Copy common.py (shared dependency) ---
+if "%LOCAL%"=="1" (
+    if exist "%~dp0common.py" copy /Y "%~dp0common.py" "%OPCODE_DIR%\plugins\common.py" >nul
+) else (
+    if not exist "%OPCODE_DIR%\plugins\common.py" (
+        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/common.py' -OutFile '%OPCODE_DIR%\plugins\common.py' -UseBasicParsing" >nul
+    )
+)
+
 if "%LOCAL%"=="1" (
     echo   [local mode] copying from "%~dp0"
 )
@@ -80,6 +89,15 @@ for %%t in (%TOOLS%) do (
 
 REM --- Install to .opencode\plugins (project-local, auto-discovered) ---
 if not exist "%PROJECT%\.opencode\plugins" mkdir "%PROJECT%\.opencode\plugins"
+
+REM --- Copy common.py to project-local ---
+if not exist "%PROJECT%\.opencode\plugins\common.py" (
+    if "%LOCAL%"=="1" (
+        if exist "%~dp0common.py" copy /Y "%~dp0common.py" "%PROJECT%\.opencode\plugins\common.py" >nul
+    ) else (
+        powershell -Command "$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '%REPO_BASE%/common.py' -OutFile '%PROJECT%\.opencode\plugins\common.py' -UseBasicParsing" >nul
+    )
+)
 
 for %%t in (%TOOLS%) do (
     set "TSFILE=%%t"
