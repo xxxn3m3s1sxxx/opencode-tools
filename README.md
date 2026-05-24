@@ -1,11 +1,11 @@
 # OpenCode Tools — Low-Latency Repository Analysis & AI Coding Assistants
 
-[![Tools](https://img.shields.io/static/v1?label=tools&message=20&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
-[![Tests](https://img.shields.io/static/v1?label=tests&message=360%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
+[![Tools](https://img.shields.io/static/v1?label=tools&message=20&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.2)
+[![Tests](https://img.shields.io/static/v1?label=tests&message=590%2B%20passing&color=brightgreen)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.2)
 [![CI](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/xxxn3m3s1sxxx/opencode-tools/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/static/v1?label=python&message=3.11%2B&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools)
 [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=green)](LICENSE)
-[![Release](https://img.shields.io/static/v1?label=release&message=v0.5.1&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.1)
+[![Release](https://img.shields.io/static/v1?label=release&message=v0.5.2&color=blue)](https://github.com/xxxn3m3s1sxxx/opencode-tools/releases/tag/v0.5.2)
 
 **20 zero-dependency tools** for AI-assisted development: symbol impact analysis, file dependency graphs, AST rename, hash-anchored editing, lint orchestration, health summary, workspace snapshots, secret scanning, dead code detection, git churn, pre-commit gates, format runners, and more. All pure Python stdlib — no `pip install` required beyond OpenCode itself.
 
@@ -172,7 +172,7 @@ python -m pytest -q        # Run all tests
 python smoke_test.py       # Smoke test all tools
 ```
 
-## Test Status (430+ tests)
+## Test Status (590+ tests)
 
 | Suite | Tests | Status |
 |-------|-------|--------|
