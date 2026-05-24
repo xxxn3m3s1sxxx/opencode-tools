@@ -18,13 +18,15 @@ BASE_DIR = os.path.dirname(TOOLS_DIR)
 SRC_DIR = os.path.join(BASE_DIR, "src")
 PASS = 0
 FAIL = 0
+_LAST_RUN = None
 
 
 def _run(*args, input_text=None):
+    global _LAST_RUN
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
     env["PYTHONUTF8"] = "1"
-    return subprocess.run(
+    r = subprocess.run(
         [sys.executable, *args],
         capture_output=True,
         text=True,
@@ -34,6 +36,8 @@ def _run(*args, input_text=None):
         encoding="utf-8",
         errors="replace",
     )
+    _LAST_RUN = r
+    return r
 
 
 def _run_tool(name, *args):
@@ -41,12 +45,18 @@ def _run_tool(name, *args):
 
 
 def check(desc, cond):
-    global PASS, FAIL
+    global PASS, FAIL, _LAST_RUN
     if cond:
         print(f"  [OK] {desc}")
         PASS += 1
     else:
         print(f"  [FAIL] {desc}")
+        if _LAST_RUN and hasattr(_LAST_RUN, "returncode"):
+            r = _LAST_RUN
+            rc = r.returncode
+            out = (r.stdout or "")[:300]
+            err = (r.stderr or "")[:300]
+            print(f"    rc={rc} stdout={out!r} stderr={err!r}")
         FAIL += 1
 
 
