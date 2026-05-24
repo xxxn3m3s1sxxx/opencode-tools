@@ -227,7 +227,7 @@ class TestCLI(unittest.TestCase):
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.1.0", out)
+        self.assertIn("0.4.0", out)
 
     def test_nonexistent_file(self):
         code, out = _run(["foo", "bar", "--file", "/nonexistent.py"])

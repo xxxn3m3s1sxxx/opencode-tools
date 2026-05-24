@@ -20,7 +20,7 @@ import re
 import subprocess
 import sys
 
-VERSION = "0.1.0"
+VERSION = "0.4.0"
 MAX_FILE_SIZE = 50 * 1024 * 1024  # skip files > 50MB
 
 try:

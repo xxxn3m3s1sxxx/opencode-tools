@@ -22,7 +22,7 @@ Edit format (stdin or file):
   - 30hi..35zz     delete range
 """
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 
 import hashlib
 import itertools

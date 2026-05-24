@@ -18,7 +18,7 @@ import os
 import re
 import sys
 
-VERSION = "0.1.0"
+VERSION = "0.4.0"
 
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")

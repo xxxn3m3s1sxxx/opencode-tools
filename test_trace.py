@@ -296,7 +296,7 @@ def test_bar():
     def test_version(self):
         code, out = _run(["--version"])
         self.assertEqual(code, 0)
-        self.assertIn("0.1.0", out)
+        self.assertIn("0.4.0", out)
 
     def test_nonexistent_symbol(self):
         code, out = _run(["--root=" + self.tmpdir, "nonexistent"])

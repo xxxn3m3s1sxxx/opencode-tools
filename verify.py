@@ -307,7 +307,7 @@ def main():
 
     # Handle --version before flag parsing
     if args and args[0] == "--version":
-        print("verify.py 0.1.0")
+        print("verify.py 0.4.0")
         return 0
 
     # Parse flags

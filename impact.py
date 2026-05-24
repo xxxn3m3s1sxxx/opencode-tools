@@ -942,7 +942,7 @@ def main():
 
     # Handle --version
     if cmd == "--version":
-        print("impact.py 0.1.1")
+        print("impact.py 0.4.0")
         return 0
 
     analyzer = ImpactAnalyzer(root_dir)

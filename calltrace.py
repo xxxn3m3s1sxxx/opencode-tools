@@ -359,7 +359,7 @@ def main():
     args = sys.argv[1:]
 
     if args[0] == "--version":
-        print("trace.py 0.1.0")
+        print("calltrace.py 0.4.0")
         return 0
 
     use_json = "--json" in args
