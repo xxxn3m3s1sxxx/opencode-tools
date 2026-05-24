@@ -11,6 +11,7 @@ Usage:
 
 Auto-detects: npm run lint, npm run typecheck, ruff, eslint, tsc --noEmit, mypy, pylint
 """
+
 import json
 import os
 import platform
@@ -21,12 +22,12 @@ import sys
 VERSION = "0.1.0"
 
 try:
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 except (AttributeError, OSError):
     pass
 
-_NPX = 'npx.cmd' if platform.system() == 'Windows' else 'npx'
+_NPX = "npx.cmd" if platform.system() == "Windows" else "npx"
 
 PARSERS: list[tuple[str, re.Pattern, dict]] = []
 
@@ -35,25 +36,29 @@ def _register(name: str, pattern: str, fields: dict):
     PARSERS.append((name, re.compile(pattern), fields))
 
 
-_register('ruff', r'^(.+?):(\d+):(\d+):\s+(\w+)\s+(.+)$',
-          {'file': 1, 'line': 2, 'col': 3, 'severity': 4, 'message': 5})
-_register('eslint', r'^(.+?):(\d+):(\d+):\s+(warning|error)\s+(.+)$',
-          {'file': 1, 'line': 2, 'col': 3, 'severity': 4, 'message': 5})
-_register('tsc', r'^(.+)\((\d+),(\d+)\):\s+(error|warning)\s+(.+)$',
-          {'file': 1, 'line': 2, 'col': 3, 'severity': 4, 'message': 5})
-_register('mypy', r'^(.+?):(\d+):\s+(error|warning|note):\s+(.+)$',
-          {'file': 1, 'line': 2, 'severity': 3, 'message': 4})
-_register('pylint', r'^(.+?):(\d+):(\d+):\s+(\w\d+):\s+(.+)$',
-          {'file': 1, 'line': 2, 'col': 3, 'severity': 4, 'message': 5})
-_register('generic', r'^(.+?):(\d+):\s+(.+)$',
-          {'file': 1, 'line': 2, 'message': 3})
+_register("ruff", r"^(.+?):(\d+):(\d+):\s+(\w+)\s+(.+)$", {"file": 1, "line": 2, "col": 3, "severity": 4, "message": 5})
+_register(
+    "eslint",
+    r"^(.+?):(\d+):(\d+):\s+(warning|error)\s+(.+)$",
+    {"file": 1, "line": 2, "col": 3, "severity": 4, "message": 5},
+)
+_register(
+    "tsc",
+    r"^(.+)\((\d+),(\d+)\):\s+(error|warning)\s+(.+)$",
+    {"file": 1, "line": 2, "col": 3, "severity": 4, "message": 5},
+)
+_register("mypy", r"^(.+?):(\d+):\s+(error|warning|note):\s+(.+)$", {"file": 1, "line": 2, "severity": 3, "message": 4})
+_register(
+    "pylint", r"^(.+?):(\d+):(\d+):\s+(\w\d+):\s+(.+)$", {"file": 1, "line": 2, "col": 3, "severity": 4, "message": 5}
+)
+_register("generic", r"^(.+?):(\d+):\s+(.+)$", {"file": 1, "line": 2, "message": 3})
 
 
 def _detect_cmd(root: str = ".") -> str | None:
     """Auto-detect which lint command to run."""
     pkg_json = os.path.join(root, "package.json")
     if os.path.exists(pkg_json):
-        with open(pkg_json, 'r', encoding='utf-8') as f:
+        with open(pkg_json, "r", encoding="utf-8") as f:
             try:
                 data = json.load(f)
                 scripts = data.get("scripts", {})
@@ -70,9 +75,9 @@ def _detect_cmd(root: str = ".") -> str | None:
 
 def _run_command(cmd: list[str], root: str) -> tuple[str, str, int]:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True,
-                           encoding='utf-8', errors='replace',
-                           timeout=60, cwd=root)
+        r = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60, cwd=root
+        )
         return r.stdout, r.stderr, r.returncode
     except FileNotFoundError:
         return "", f"Command not found: {cmd[0]}", -1
@@ -82,51 +87,51 @@ def _run_command(cmd: list[str], root: str) -> tuple[str, str, int]:
         return "", f"Cannot execute: {cmd[0]}", -1
 
 
-ESLINT_LINE_RE = re.compile(
-    r'^\s*(\d+):(\d+)\s+(warning|error)\s+(.+?)\s+(?:\S+(?:/\S+)?)?\s*$'
-)
+ESLINT_LINE_RE = re.compile(r"^\s*(\d+):(\d+)\s+(warning|error)\s+(.+?)\s+(?:\S+(?:/\S+)?)?\s*$")
 
 
 def _parse_eslint_output(output: str) -> list[dict]:
     """Parse eslint's multi-line output format."""
     results = []
     current_file = None
-    for raw_line in output.split('\n'):
+    for raw_line in output.split("\n"):
         line = raw_line.strip()
         if not line:
             continue
         # File path line: absolute or relative path
-        if ':' not in line or (line[1:2] == ':' and len(line) > 2):
-            if '\\' in line or line.startswith('/') or (len(line) > 2 and line[1] == ':'):
+        if ":" not in line or (line[1:2] == ":" and len(line) > 2):
+            if "\\" in line or line.startswith("/") or (len(line) > 2 and line[1] == ":"):
                 current_file = line
                 continue
         # Error line: "  line:col  severity  message  rule"
         m = ESLINT_LINE_RE.match(raw_line)
         if m and current_file:
-            results.append({
-                '_parser': 'eslint',
-                'file': current_file,
-                'line': int(m.group(1)),
-                'col': int(m.group(2)),
-                'severity': m.group(3),
-                'message': m.group(4).strip(),
-            })
+            results.append(
+                {
+                    "_parser": "eslint",
+                    "file": current_file,
+                    "line": int(m.group(1)),
+                    "col": int(m.group(2)),
+                    "severity": m.group(3),
+                    "message": m.group(4).strip(),
+                }
+            )
     return results
 
 
 def _parse_output(output: str) -> list[dict]:
     results = []
-    for line in output.split('\n'):
+    for line in output.split("\n"):
         line = line.strip()
         if not line:
             continue
         for name, pattern, fields in PARSERS:
             m = pattern.match(line)
             if m:
-                entry = {'_parser': name}
+                entry = {"_parser": name}
                 for fname, group_num in fields.items():
                     val = m.group(group_num)
-                    if fname in ('line', 'col'):
+                    if fname in ("line", "col"):
                         try:
                             val = int(val)
                         except (ValueError, TypeError):
@@ -139,11 +144,11 @@ def _parse_output(output: str) -> list[dict]:
 
 def main():
     args = sys.argv[1:]
-    if not args or args[0] in ('--help', '-h'):
+    if not args or args[0] in ("--help", "-h"):
         print(__doc__.strip())
-        return 0 if args and args[0] in ('--help', '-h') else 1
+        return 0 if args and args[0] in ("--help", "-h") else 1
 
-    if args[0] == '--version':
+    if args[0] == "--version":
         print(f"lint.py {VERSION}")
         return 0
 
@@ -156,18 +161,24 @@ def main():
     i = 0
     while i < len(raw):
         a = raw[i]
-        if a == '--json':
-            use_json = True; i += 1
-        elif a == '--root' and i + 1 < len(raw):
-            root = raw[i + 1]; i += 2
-        elif a.startswith('--root='):
-            root = a.split('=', 1)[1]; i += 1
-        elif a.startswith('-'):
-            print(f"Unknown flag: {a}", file=sys.stderr); return 1
+        if a == "--json":
+            use_json = True
+            i += 1
+        elif a == "--root" and i + 1 < len(raw):
+            root = raw[i + 1]
+            i += 2
+        elif a.startswith("--root="):
+            root = a.split("=", 1)[1]
+            i += 1
+        elif a.startswith("-"):
+            print(f"Unknown flag: {a}", file=sys.stderr)
+            return 1
         elif tool is None:
-            tool = a; i += 1
+            tool = a
+            i += 1
         else:
-            file_arg = a; i += 1
+            file_arg = a
+            i += 1
 
     # If the positional arg is a directory, treat it as root
     if tool and os.path.isdir(tool) and file_arg is None:
@@ -176,28 +187,27 @@ def main():
 
     # Build command
     cmd: list[str] = []
-    if tool == 'ruff' or (tool is None and _detect_cmd(root) is None):
-        cmd = ['ruff', 'check', '.']
-    elif tool == 'eslint':
-        cmd = [_NPX, 'eslint', '.']
-    elif tool == 'tsc':
-        cmd = [_NPX, 'tsc', '--noEmit']
-    elif tool == 'mypy':
-        cmd = ['mypy']
-    elif tool == 'pylint':
-        cmd = ['pylint']
+    if tool == "ruff" or (tool is None and _detect_cmd(root) is None):
+        cmd = ["ruff", "check", "."]
+    elif tool == "eslint":
+        cmd = [_NPX, "eslint", "."]
+    elif tool == "tsc":
+        cmd = [_NPX, "tsc", "--noEmit"]
+    elif tool == "mypy":
+        cmd = ["mypy"]
+    elif tool == "pylint":
+        cmd = ["pylint"]
     elif tool is None:
         detected = _detect_cmd(root)
         if detected:
             cmd = detected.split()
-            if cmd and cmd[0] == 'npx':
+            if cmd and cmd[0] == "npx":
                 cmd[0] = _NPX
         else:
             # Default: try ruff, fallback to eslint, tsc
-            for candidate in [['ruff', 'check'], [_NPX, 'eslint', '.'], [_NPX, 'tsc', '--noEmit']]:
+            for candidate in [["ruff", "check"], [_NPX, "eslint", "."], [_NPX, "tsc", "--noEmit"]]:
                 try:
-                    r = subprocess.run([candidate[0], '--version'],
-                                       capture_output=True, timeout=5, cwd=root)
+                    r = subprocess.run([candidate[0], "--version"], capture_output=True, timeout=5, cwd=root)
                     if r.returncode == 0:
                         cmd = candidate
                         break
@@ -224,11 +234,11 @@ def main():
 
     if use_json:
         result = {
-            'command': ' '.join(cmd),
-            'exit_code': returncode,
-            'tool': tool or 'auto',
-            'issues': entries,
-            'count': len(entries),
+            "command": " ".join(cmd),
+            "exit_code": returncode,
+            "tool": tool or "auto",
+            "issues": entries,
+            "count": len(entries),
         }
         print(json.dumps(result, indent=2))
     else:
@@ -240,19 +250,19 @@ def main():
                 print("Output could not be parsed. Raw output:")
                 print(full_output[:2000])
         else:
-            errors = [e for e in entries if e.get('severity') in ('error', 'E') or e.get('severity') == 'error']
-            warnings = [e for e in entries if e.get('severity') in ('warning', 'W') or e.get('severity') == 'warning']
+            errors = [e for e in entries if e.get("severity") in ("error", "E") or e.get("severity") == "error"]
+            warnings = [e for e in entries if e.get("severity") in ("warning", "W") or e.get("severity") == "warning"]
             info = [e for e in entries if e not in errors and e not in warnings]
 
             print(f"{len(errors)} error(s), {len(warnings)} warning(s), {len(info)} info(s)")
             print()
 
             for e in (errors + warnings + info)[:30]:
-                sev = e.get('severity', '?').upper()[:1]
+                sev = e.get("severity", "?").upper()[:1]
                 loc = f"{e.get('file', '?')}:{e.get('line', '?')}"
-                if 'col' in e:
+                if "col" in e:
                     loc += f":{e['col']}"
-                msg = e.get('message', e.get('raw', '?'))
+                msg = e.get("message", e.get("raw", "?"))
                 print(f"  [{sev}] {loc}  {msg}")
 
             if len(entries) > 30:
@@ -261,5 +271,5 @@ def main():
     return 0 if returncode == 0 else 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

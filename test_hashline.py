@@ -26,6 +26,7 @@ BIGRAMS_COUNT = len(BIGRAMS)
 
 VERBOSE = False
 
+
 def log(msg: str):
     print(f"  {msg}" if VERBOSE else "", end="")
 
@@ -49,10 +50,7 @@ def skip(name: str, reason: str):
 def run_hl(args: list[str], stdin: str = "") -> subprocess.CompletedProcess:
     """Run hashline.py and return result."""
     cmd = [sys.executable, HASHLINE_PY] + args
-    return subprocess.run(
-        cmd, input=stdin, capture_output=True, text=True, timeout=15,
-        encoding="utf-8"
-    )
+    return subprocess.run(cmd, input=stdin, capture_output=True, text=True, timeout=15, encoding="utf-8")
 
 
 def compute_hash(line: str) -> str:
@@ -63,6 +61,7 @@ def compute_hash(line: str) -> str:
 
 
 # ===== TESTS =====
+
 
 def test_version():
     """Test --version flag."""
@@ -182,7 +181,7 @@ def test_edit_diff_file():
 
 
 def test_edit_stdin():
-    """Edit reading diff from stdin.""" 
+    """Edit reading diff from stdin."""
     with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
         f.write("red\ngreen\nblue\n")
         target = f.name
@@ -318,8 +317,11 @@ def test_no_trailing_newline():
     try:
         r = run_hl(["read", p])
         check("no-newline read", r.returncode == 0, f"stderr: {r.stderr}")
-        check("no-newline no extra empty line", len(r.stdout.strip().split("\n")) == 1,
-              f"output has {len(r.stdout.strip().split(chr(10)))} lines: {r.stdout!r}")
+        check(
+            "no-newline no extra empty line",
+            len(r.stdout.strip().split("\n")) == 1,
+            f"output has {len(r.stdout.strip().split(chr(10)))} lines: {r.stdout!r}",
+        )
     finally:
         os.unlink(p)
 
@@ -343,8 +345,7 @@ def test_long_line():
 
 def test_spaces_in_path():
     """File path with spaces."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False,
-                                      prefix="my file ", encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, prefix="my file ", encoding="utf-8") as f:
         f.write("hello\n")
         p = f.name
     try:
@@ -375,8 +376,7 @@ def test_diff_cmd():
     try:
         r = run_hl(["diff", target, dp])
         check("diff returns 0", r.returncode == 0)
-        check("diff output shows change", "-same" in r.stdout or "+changed" in r.stdout,
-              f"got {r.stdout[:200]!r}")
+        check("diff output shows change", "-same" in r.stdout or "+changed" in r.stdout, f"got {r.stdout[:200]!r}")
     finally:
         for fp in (target, dp):
             try:
@@ -387,41 +387,43 @@ def test_diff_cmd():
 
 # ===== DEMO COMPARISON =====
 
+
 def demo_edit_fails_hashline_succeeds():
     """Demonstrate that edit() would fail but hashline_edit succeeds.
-    
+
     This simulates common AI model failure modes:
     1. Trailing whitespace mismatch
     2. Wrong indentation
     3. Minor text variations
     """
     print("\n  [STATS] Demo: edit() vs hashline_edit() -- failure modes\n")
-    
+
     scenarios = [
         ("trailing space", "hello world", "hello world "),
         ("different indentation", "  indented", "indented"),
         ("case variation", "Line Text", "line text"),
     ]
-    
+
     for name, file_content, model_guess in scenarios:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
             f.write(file_content + "\n")
             p = f.name
-        
+
         # edit() would fail because oldString doesn't match exactly
         r = run_hl(["replace", p, model_guess, "replaced"])
         # hashline succeeds via stripped text matching
         mark = "[OK]" if r.returncode == 0 else "[FAIL]"
         detail = f"file={file_content!r} model={model_guess!r} -> exit={r.returncode}"
         log_detail = f"  {mark} {name}: {detail}\n    stdout: {r.stdout.strip()}\n"
-        
+
         if VERBOSE:
             print(log_detail)
-        
+
         os.unlink(p)
 
 
 # ===== BENCHMARK =====
+
 
 def benchmark_reliability():
     """Demo where edit() fails but hashline_edit succeeds."""
@@ -430,9 +432,9 @@ def benchmark_reliability():
     cases = 0
 
     for desc, file_text, model_guess in [
-        ("trailing whitespace",     "hello world",   "hello world "),
-        ("wrong indentation",       "  indented",    "indented"),
-        ("extra blank line at EOF", "line1\nline2",  "line1\nline2\n\n"),
+        ("trailing whitespace", "hello world", "hello world "),
+        ("wrong indentation", "  indented", "indented"),
+        ("extra blank line at EOF", "line1\nline2", "line1\nline2\n\n"),
     ]:
         cases += 1
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:
@@ -450,6 +452,7 @@ def benchmark_reliability():
 
 
 # ===== MAIN =====
+
 
 def main():
     global VERBOSE
@@ -496,14 +499,14 @@ def main():
 
     # Summary
     total = PASS + FAIL + SKIP
-    print(f"\n{'='*40}")
+    print(f"\n{'=' * 40}")
     print(f"  [OK] {PASS} passed")
     if FAIL:
         print(f"  [FAIL] {FAIL} failed")
     if SKIP:
         print(f"  [SKIP] {SKIP} skipped")
     print(f"  [STATS] {total} total")
-    print(f"{'='*40}")
+    print(f"{'=' * 40}")
 
     return 0 if FAIL == 0 else 1
 

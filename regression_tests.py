@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Targeted regression tests for recently fixed bugs."""
+
 import os
 import subprocess
 import sys
@@ -27,8 +28,11 @@ def check(desc, cond, detail=""):
 def hl(*args, stdin=""):
     return subprocess.run(
         [P, HL] + list(args),
-        input=stdin, capture_output=True, text=True,
-        encoding="utf-8", timeout=30,
+        input=stdin,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
     )
 
 
@@ -69,8 +73,7 @@ with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding
 r = hl("replace", p, "target1\ntarget2", "REPLACED")
 check("multi-line mid-file replace", r.returncode == 0, r.stderr[:200])
 content = open(p, encoding="utf-8").read()
-check("multi-line result order", "before" in content and "REPLACED" in content and "after" in content,
-      repr(content))
+check("multi-line result order", "before" in content and "REPLACED" in content and "after" in content, repr(content))
 check("multi-line old removed", "target1" not in content, repr(content))
 os.unlink(p)
 

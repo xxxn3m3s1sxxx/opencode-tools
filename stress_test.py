@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Stress-test hashline.py for edge cases and bugs."""
 
-
 import os
 import subprocess
 import sys
@@ -9,7 +8,7 @@ import tempfile
 
 # Fix Windows console encoding
 try:
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except (AttributeError, OSError):
     pass
 
@@ -254,8 +253,10 @@ with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding
         os.unlink(df)
     else:
         check("diff test (skipped)", True, "could not parse anchors")
-    try: os.unlink(p)
-    except OSError: pass
+    try:
+        os.unlink(p)
+    except OSError:
+        pass
 
 # === 16. Check command ===
 with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as f:

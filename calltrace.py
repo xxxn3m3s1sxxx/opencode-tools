@@ -17,6 +17,7 @@ Options:
 
 Exit code: 0 = found, 1 = symbol not found
 """
+
 import ast
 import json
 import os
@@ -30,6 +31,7 @@ except ImportError:
     _impact_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "impact.py")
     if os.path.exists(_impact_path):
         import importlib.util as _util
+
         _spec = _util.spec_from_file_location("impact", _impact_path)
         if _spec and _spec.loader:
             _mod = _util.module_from_spec(_spec)
@@ -45,11 +47,12 @@ except ImportError:
 
 def _read_file(filepath):
     """Read file, stripping BOM and normalizing CRLF to LF."""
-    with open(filepath, 'r', encoding='utf-8-sig', errors='replace') as f:
+    with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
         return f.read().replace("\r\n", "\n")
 
 
 _ENCLOSING_CACHE: dict[str, dict] = {}
+
 
 def _find_enclosing_function(filepath, line_no):
     """Find the name of the function enclosing a given line (Python only)."""
@@ -65,11 +68,11 @@ def _find_enclosing_function(filepath, line_no):
         tree_info = {}
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if hasattr(node, 'lineno') and hasattr(node, 'end_lineno'):
+                if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
                     for ln in range(node.lineno, node.end_lineno + 1):
                         tree_info[ln] = node.name
             elif isinstance(node, ast.ClassDef):
-                if hasattr(node, 'lineno') and hasattr(node, 'end_lineno'):
+                if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
                     for ln in range(node.lineno, node.end_lineno + 1):
                         if ln not in tree_info:
                             tree_info[ln] = node.name
@@ -85,15 +88,17 @@ def _grep_occurrences(filepath, symbol):
         lines = source.split("\n") if source else []
     except (OSError, UnicodeDecodeError):
         return matches
-    pattern = re.compile(r'\b' + re.escape(symbol) + r'\b')
+    pattern = re.compile(r"\b" + re.escape(symbol) + r"\b")
     for i, line in enumerate(lines, 1):
         if pattern.search(line):
-            matches.append({
-                'type': 'occurrence',
-                'file': filepath,
-                'line': i,
-                'context': line[:120].strip(),
-            })
+            matches.append(
+                {
+                    "type": "occurrence",
+                    "file": filepath,
+                    "line": i,
+                    "context": line[:120].strip(),
+                }
+            )
     return matches
 
 
@@ -109,15 +114,17 @@ def _build_index(files):
         except (OSError, UnicodeDecodeError):
             continue
         for i, line in enumerate(lines, 1):
-            for m in re.finditer(r'\b(\w+)\b', line):
+            for m in re.finditer(r"\b(\w+)\b", line):
                 sym = m.group(1)
                 if sym not in idx:
                     idx[sym] = []
-                idx[sym].append({
-                    'file': fp,
-                    'line': i,
-                    'context': line[:120].strip(),
-                })
+                idx[sym].append(
+                    {
+                        "file": fp,
+                        "line": i,
+                        "context": line[:120].strip(),
+                    }
+                )
     return idx
 
 
@@ -133,28 +140,30 @@ def _find_callers_from_index(analyzer, symbol, depth, lang, idx, visited=None):
 
     occs = idx.get(symbol, [])
     for occ in occs:
-        fp = occ['file']
-        if lang != 'all':
+        fp = occ["file"]
+        if lang != "all":
             ext = os.path.splitext(fp)[1].lower()
-            if lang == 'py' and ext != '.py':
+            if lang == "py" and ext != ".py":
                 continue
-            if lang == 'cpp' and ext not in ('.cpp', '.c', '.h', '.hpp', '.cc', '.cxx', '.hxx', '.hh'):
+            if lang == "cpp" and ext not in (".cpp", ".c", ".h", ".hpp", ".cc", ".cxx", ".hxx", ".hh"):
                 continue
-            if lang == 'ts' and ext not in ('.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'):
+            if lang == "ts" and ext not in (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"):
                 continue
         caller = None
         if _is_python(fp):
-            caller = _find_enclosing_function(fp, occ['line'])
+            caller = _find_enclosing_function(fp, occ["line"])
         if caller != symbol and caller not in visited:
-            name = caller or ''
-            results.append({
-                'type': 'caller',
-                'caller': name,
-                'callee': symbol,
-                'file': occ['file'],
-                'line': occ['line'],
-                'context': occ.get('context', ''),
-            })
+            name = caller or ""
+            results.append(
+                {
+                    "type": "caller",
+                    "caller": name,
+                    "callee": symbol,
+                    "file": occ["file"],
+                    "line": occ["line"],
+                    "context": occ.get("context", ""),
+                }
+            )
             if depth > 1 and _is_python(fp) and name:
                 deeper = _find_callers_from_index(analyzer, name, depth - 1, lang, idx, visited)
                 results.extend(deeper)
@@ -181,17 +190,19 @@ def _find_callers(analyzer, symbol, depth, lang, visited=None, files=None):
         for occ in occs:
             caller = None
             if _is_python(fp):
-                caller = _find_enclosing_function(occ['file'], occ['line'])
+                caller = _find_enclosing_function(occ["file"], occ["line"])
             if caller != symbol and caller not in visited:
-                name = caller or ''
-                results.append({
-                    'type': 'caller',
-                    'caller': name,
-                    'callee': symbol,
-                    'file': occ['file'],
-                    'line': occ['line'],
-                    'context': occ.get('context', ''),
-                })
+                name = caller or ""
+                results.append(
+                    {
+                        "type": "caller",
+                        "caller": name,
+                        "callee": symbol,
+                        "file": occ["file"],
+                        "line": occ["line"],
+                        "context": occ.get("context", ""),
+                    }
+                )
                 if depth > 1 and _is_python(fp) and name:
                     deeper = _find_callers(analyzer, name, depth - 1, lang, visited, files)
                     results.extend(deeper)
@@ -212,11 +223,13 @@ def _find_call_chain(analyzer, symbol, depth, lang, visited=None, chain=None):
 
     callees = analyzer.find_callees(symbol, lang)
     if callees:
-        chain.append({
-            'symbol': symbol,
-            'callees': sorted(set(c['name'] for c in callees)),
-        })
-        for callee in set(c['name'] for c in callees):
+        chain.append(
+            {
+                "symbol": symbol,
+                "callees": sorted(set(c["name"] for c in callees)),
+            }
+        )
+        for callee in set(c["name"] for c in callees):
             if callee not in visited:
                 _find_call_chain(analyzer, callee, depth - 1, lang, visited, chain)
 
@@ -224,194 +237,197 @@ def _find_call_chain(analyzer, symbol, depth, lang, visited=None, chain=None):
 
 
 def _tree_char(i, total):
-    return '└── ' if i == total - 1 else '├── '
+    return "└── " if i == total - 1 else "├── "
 
 
 def format_pretty(symbol, callers, chain, root, depth):
     lines = []
-    lines.append(f'trace: `{symbol}`')
-    lines.append(f'  depth: {depth}')
-    lines.append('')
+    lines.append(f"trace: `{symbol}`")
+    lines.append(f"  depth: {depth}")
+    lines.append("")
 
     if callers:
         seen = set()
-        lines.append(f'  [callers] {len(callers)}')
+        lines.append(f"  [callers] {len(callers)}")
         for c in callers:
-            key = (c['file'], c['line'])
+            key = (c["file"], c["line"])
             if key not in seen:
                 seen.add(key)
-                rel = os.path.relpath(c['file'], root)
-                caller_label = c['caller'] if c['caller'] else '(module)'
-                ctx = c.get('context', '')[:80]
-                tc = f'  -- {ctx}' if ctx else ''
-                lines.append(f'    {caller_label:<25s}  {rel}:{c["line"]}{tc}')
-        lines.append('')
+                rel = os.path.relpath(c["file"], root)
+                caller_label = c["caller"] if c["caller"] else "(module)"
+                ctx = c.get("context", "")[:80]
+                tc = f"  -- {ctx}" if ctx else ""
+                lines.append(f"    {caller_label:<25s}  {rel}:{c['line']}{tc}")
+        lines.append("")
 
     if chain:
-        lines.append(f'  [chain] {symbol}')
+        lines.append(f"  [chain] {symbol}")
         for level in chain:
-            sym = level['symbol']
-            callees = level.get('callees', [])
+            sym = level["symbol"]
+            callees = level.get("callees", [])
             for i, callee in enumerate(callees):
-                lines.append(f'    {_tree_char(i, len(callees))}{sym} -> {callee}')
+                lines.append(f"    {_tree_char(i, len(callees))}{sym} -> {callee}")
 
     if not callers and not chain:
-        lines.append('  (no call chain found)')
+        lines.append("  (no call chain found)")
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def format_viz(symbol, callers, chain, root, depth):
     """ASCII tree visualization of call chain."""
     lines = []
-    lines.append(f'trace: `{symbol}` (viz, depth={depth})')
-    lines.append('')
+    lines.append(f"trace: `{symbol}` (viz, depth={depth})")
+    lines.append("")
 
     if chain:
         # Build parent->children map
         children_of = {}
         for level in chain:
-            sym = level['symbol']
+            sym = level["symbol"]
             if sym not in children_of:
                 children_of[sym] = []
-            for c in level.get('callees', []):
+            for c in level.get("callees", []):
                 children_of[sym].append(c)
                 if c not in children_of:
                     children_of[c] = []
 
         def _append_tree(node, prefix, is_last, visited):
             if node in visited:
-                lines.append(f'{prefix}{"└── " if is_last else "├── "}{node} (cycle)')
+                lines.append(f"{prefix}{'└── ' if is_last else '├── '}{node} (cycle)")
                 return
             visited.add(node)
-            connector = '└── ' if is_last else '├── '
-            lines.append(f'{prefix}{connector}{node}')
+            connector = "└── " if is_last else "├── "
+            lines.append(f"{prefix}{connector}{node}")
             kids = children_of.get(node, [])
             if kids:
-                new_prefix = prefix + ('    ' if is_last else '│   ')
+                new_prefix = prefix + ("    " if is_last else "│   ")
                 for i, kid in enumerate(kids):
                     _append_tree(kid, new_prefix, i == len(kids) - 1, visited)
 
-        _append_tree(symbol, '', True, set())
+        _append_tree(symbol, "", True, set())
 
     if callers:
         # Build callee->callers map
         unique = {}
         for c in callers:
-            callee = c['callee']
+            callee = c["callee"]
             if callee not in unique:
                 unique[callee] = []
-            key = (c['file'], c['line'])
-            if key not in {(x['file'], x['line']) for x in unique[callee]}:
+            key = (c["file"], c["line"])
+            if key not in {(x["file"], x["line"]) for x in unique[callee]}:
                 unique[callee].append(c)
 
         if chain:
-            lines.append('')
+            lines.append("")
 
-        lines.append('  [callers]')
+        lines.append("  [callers]")
         caller_list = unique.get(symbol, [])
         for i, c in enumerate(caller_list):
-            rel = os.path.relpath(c['file'], root)
-            label = c['caller'] if c['caller'] else '(module)'
-            lines.append(f'    {_tree_char(i, len(caller_list))}{label}  ({rel}:{c["line"]})')
+            rel = os.path.relpath(c["file"], root)
+            label = c["caller"] if c["caller"] else "(module)"
+            lines.append(f"    {_tree_char(i, len(caller_list))}{label}  ({rel}:{c['line']})")
 
     if not callers and not chain:
-        lines.append('  (no call chain found)')
+        lines.append("  (no call chain found)")
 
-    return '\n'.join(lines)
+    return "\n".join(lines)
 
 
 def format_json(symbol, callers, chain, root, depth):
-    return json.dumps({
-        'symbol': symbol,
-        'project': str(root),
-        'depth': depth,
-        'callers': callers,
-        'chain': chain,
-    }, indent=2)
+    return json.dumps(
+        {
+            "symbol": symbol,
+            "project": str(root),
+            "depth": depth,
+            "callers": callers,
+            "chain": chain,
+        },
+        indent=2,
+    )
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
         print(__doc__.strip())
         return 0
 
     if ImpactAnalyzer is None:
-        print('Error: impact.py not found. trace depends on impact.py in the same directory.')
+        print("Error: impact.py not found. trace depends on impact.py in the same directory.")
         return 1
 
     args = sys.argv[1:]
 
-    if args[0] == '--version':
-        print('trace.py 0.1.0')
+    if args[0] == "--version":
+        print("trace.py 0.1.0")
         return 0
 
-    use_json = '--json' in args
-    use_viz = '--viz' in args
-    lang = 'all'
+    use_json = "--json" in args
+    use_viz = "--viz" in args
+    lang = "all"
     root_dir = None
     depth = 2
-    mode = 'both'
+    mode = "both"
 
     clean_args = []
     i = 0
     while i < len(args):
         a = args[i]
-        if a == '--json':
+        if a == "--json":
             i += 1
             continue
-        if a == '--viz':
+        if a == "--viz":
             i += 1
             continue
-        if a == '--root' and i + 1 < len(args):
+        if a == "--root" and i + 1 < len(args):
             root_dir = args[i + 1]
             i += 2
             continue
-        if a.startswith('--root='):
-            root_dir = a.split('=', 1)[1]
+        if a.startswith("--root="):
+            root_dir = a.split("=", 1)[1]
             i += 1
             continue
-        if a in ('-d', '--depth') and i + 1 < len(args):
+        if a in ("-d", "--depth") and i + 1 < len(args):
             try:
                 depth = int(args[i + 1])
             except ValueError:
-                print(f"Invalid --depth value: {args[i+1]}", file=sys.stderr)
+                print(f"Invalid --depth value: {args[i + 1]}", file=sys.stderr)
                 return 1
             i += 2
             continue
-        if a == '--up':
-            mode = 'up'
+        if a == "--up":
+            mode = "up"
             i += 1
             continue
-        if a == '--down':
-            mode = 'down'
+        if a == "--down":
+            mode = "down"
             i += 1
             continue
-        if a == '--py':
-            lang = 'py'
+        if a == "--py":
+            lang = "py"
             i += 1
             continue
-        if a == '--cpp':
-            lang = 'cpp'
+        if a == "--cpp":
+            lang = "cpp"
             i += 1
             continue
-        if a.startswith('--'):
-            print(f'Unknown flag: {a}')
+        if a.startswith("--"):
+            print(f"Unknown flag: {a}")
             return 1
         clean_args.append(a)
         i += 1
 
     if not clean_args:
-        print('Usage: trace <symbol> [options]')
+        print("Usage: trace <symbol> [options]")
         return 1
 
     symbol_raw = clean_args[0]
     analyzer = ImpactAnalyzer(root_dir)
 
     # Parse file:line syntax (handle Windows C:\ paths)
-    file_line_match = re.match(r'^([A-Za-z]:\\.+?):(\d+)$', symbol_raw)
+    file_line_match = re.match(r"^([A-Za-z]:\\.+?):(\d+)$", symbol_raw)
     if not file_line_match:
-        file_line_match = re.match(r'^([^:]+):(\d+)$', symbol_raw)
+        file_line_match = re.match(r"^([^:]+):(\d+)$", symbol_raw)
     if file_line_match and os.path.isfile(file_line_match.group(1)):
         filepath, line_str = file_line_match.group(1), file_line_match.group(2)
         try:
@@ -430,11 +446,11 @@ def main():
     callers = []
     chain = []
 
-    if mode in ('up', 'both'):
+    if mode in ("up", "both"):
         idx = _build_index(analyzer._walk_files(lang))
         callers = _find_callers_from_index(analyzer, symbol, depth, lang, idx)
 
-    if mode in ('down', 'both'):
+    if mode in ("down", "both"):
         chain = _find_call_chain(analyzer, symbol, depth, lang)
 
     if use_json:
@@ -448,5 +464,5 @@ def main():
     return 0 if found else 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

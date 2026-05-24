@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Deeper edge case tests for hashline.py."""
+
 import os
 import subprocess
 import sys
@@ -7,7 +8,7 @@ import tempfile
 
 # Fix Windows console encoding
 try:
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except (AttributeError, OSError):
     pass
 
@@ -30,10 +31,7 @@ def chk(desc, cond, msg=""):
 
 
 def hl(*args, **kw):
-    return subprocess.run(
-        [P, HL] + list(args),
-        capture_output=True, text=True, encoding="utf-8", timeout=15, **kw
-    )
+    return subprocess.run([P, HL] + list(args), capture_output=True, text=True, encoding="utf-8", timeout=15, **kw)
 
 
 # 1. Multi-line partial: leading on line 1, trailing on line 2

@@ -13,6 +13,7 @@ Examples:
   search "from .* import" --include *.py
   search "TODO|FIXME" --context 2
 """
+
 import json
 import os
 import re
@@ -23,30 +24,30 @@ VERSION = "0.1.0"
 MAX_FILE_SIZE = 50 * 1024 * 1024  # skip files > 50MB
 
 try:
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 except (AttributeError, OSError):
     pass
 
 
 def _has_rg() -> bool:
     try:
-        r = subprocess.run(['rg', '--version'], capture_output=True, text=True, timeout=5)
+        r = subprocess.run(["rg", "--version"], capture_output=True, text=True, timeout=5)
         return r.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return False
 
 
 def _rg_search(pattern: str, path: str, include: str | None, context: int) -> list[dict]:
-    cmd = ['rg', '-n', '--no-heading']
+    cmd = ["rg", "-n", "--no-heading"]
     if include:
-        cmd.extend(['--glob', include])
+        cmd.extend(["--glob", include])
     if context:
-        cmd.extend(['-C', str(context)])
+        cmd.extend(["-C", str(context)])
     cmd.append(pattern)
     cmd.append(path)
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=30)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
         if r.returncode not in (0, 1):
             return []
         return _parse_rg_output(r.stdout, context)
@@ -60,13 +61,13 @@ def _parse_rg_output(output: str, context: int) -> list[dict]:
     current_lnum = 0
     current_file = ""
 
-    for line in output.rstrip('\n').split('\n'):
+    for line in output.rstrip("\n").split("\n"):
         if not line.strip():
             if current_group is not None:
                 results.append(current_group)
                 current_group = None
             continue
-        m = re.match(r'^(.+?):(\d+):(.+)$', line)
+        m = re.match(r"^(.+?):(\d+):(.+)$", line)
         if m:
             if current_group is not None:
                 results.append(current_group)
@@ -74,17 +75,17 @@ def _parse_rg_output(output: str, context: int) -> list[dict]:
             current_lnum = int(m.group(2))
             content = m.group(3)
             current_group = {
-                'file': current_file,
-                'line': current_lnum,
-                'match': content,
-                'context_before': [],
-                'context_after': [],
-                'is_context': False,
+                "file": current_file,
+                "line": current_lnum,
+                "match": content,
+                "context_before": [],
+                "context_after": [],
+                "is_context": False,
             }
         elif current_group is not None:
-            cm = re.match(r'^(\d+)?[-]?(.+)$', line)
+            cm = re.match(r"^(\d+)?[-]?(.+)$", line)
             if cm:
-                current_group.setdefault('context_after', []).append(cm.group(2).strip())
+                current_group.setdefault("context_after", []).append(cm.group(2).strip())
 
     if current_group is not None:
         results.append(current_group)
@@ -118,29 +119,29 @@ def _py_search(pattern: str, path: str, include: str | None, context: int) -> li
             except OSError:
                 return results
             try:
-                with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
+                with open(fpath, "r", encoding="utf-8", errors="replace") as fh:
                     for n, line in enumerate(fh, 1):
                         m = compiled.search(line)
                         if m:
-                            entry = {'file': fpath, 'line': n, 'match': m.group(), 'context': []}
+                            entry = {"file": fpath, "line": n, "match": m.group(), "context": []}
                             if context > 0:
                                 ctx_start = max(0, n - context - 1)
                                 ctx_lines = []
                                 try:
-                                    with open(fpath, 'r', encoding='utf-8', errors='replace') as cf:
+                                    with open(fpath, "r", encoding="utf-8", errors="replace") as cf:
                                         for cn, cl in enumerate(cf, 1):
                                             if ctx_start < cn <= n + context:
-                                                ctx_lines.append({'line': cn, 'content': cl.rstrip('\n')})
+                                                ctx_lines.append({"line": cn, "content": cl.rstrip("\n")})
                                 except OSError:
                                     pass
-                                entry['context'] = ctx_lines
+                                entry["context"] = ctx_lines
                             results.append(entry)
             except (OSError, re.error):
                 pass
         return results
     for root, _dirs, files in os.walk(path):
         # Skip .git, __pycache__, node_modules
-        if '.git' in root or '__pycache__' in root or 'node_modules' in root:
+        if ".git" in root or "__pycache__" in root or "node_modules" in root:
             continue
         for f in sorted(files):
             fpath = os.path.join(root, f)
@@ -153,39 +154,41 @@ def _py_search(pattern: str, path: str, include: str | None, context: int) -> li
             except OSError:
                 continue
             try:
-                with open(fpath, 'r', encoding='utf-8', errors='replace') as fh:
+                with open(fpath, "r", encoding="utf-8", errors="replace") as fh:
                     lines = fh.readlines()
             except (OSError, UnicodeDecodeError):
                 continue
             relpath = os.path.relpath(fpath, path) if os.path.isdir(path) else fpath
             for i, line in enumerate(lines, 1):
-                if compiled.search(line.rstrip('\n')):
+                if compiled.search(line.rstrip("\n")):
                     entry = {
-                        'file': relpath if os.path.isdir(path) else fpath,
-                        'line': i,
-                        'match': line.rstrip('\n'),
-                        'context_before': [lines[j-1].rstrip('\n') for j in range(max(1, i-context), i)],
-                        'context_after': [lines[j-1].rstrip('\n') for j in range(i+1, min(len(lines)+1, i+context+1))],
-                        'is_context': False,
+                        "file": relpath if os.path.isdir(path) else fpath,
+                        "line": i,
+                        "match": line.rstrip("\n"),
+                        "context_before": [lines[j - 1].rstrip("\n") for j in range(max(1, i - context), i)],
+                        "context_after": [
+                            lines[j - 1].rstrip("\n") for j in range(i + 1, min(len(lines) + 1, i + context + 1))
+                        ],
+                        "is_context": False,
                     }
                     results.append(entry)
     return results
 
 
 def _match_glob(filename: str, pattern: str) -> bool:
-    if '*' in pattern:
-        parts = pattern.split('*')
+    if "*" in pattern:
+        parts = pattern.split("*")
         return all(p in filename for p in parts if p)
-    return filename.endswith(pattern.lstrip('*'))
+    return filename.endswith(pattern.lstrip("*"))
 
 
 def main():
     args = sys.argv[1:]
-    if not args or args[0] in ('--help', '-h'):
+    if not args or args[0] in ("--help", "-h"):
         print(__doc__.strip())
-        return 0 if args and args[0] in ('--help', '-h') else 1
+        return 0 if args and args[0] in ("--help", "-h") else 1
 
-    if args[0] == '--version':
+    if args[0] == "--version":
         print(f"search.py {VERSION}")
         return 0
 
@@ -199,24 +202,38 @@ def main():
     i = 0
     while i < len(raw):
         a = raw[i]
-        if a == '--json':
-            use_json = True; i += 1
-        elif a.startswith('--context='):
-            try: context = int(a.split('=', 1)[1]); i += 1
-            except ValueError: print(f"Invalid --context value: {a.split('=',1)[1]}", file=sys.stderr); return 1
-        elif a == '--context' and i + 1 < len(raw):
-            try: context = int(raw[i + 1]); i += 2
-            except ValueError: print(f"Invalid --context value: {raw[i+1]}", file=sys.stderr); return 1
-        elif a.startswith('--include='):
-            include = a.split('=', 1)[1]; i += 1
-        elif a == '--include' and i + 1 < len(raw):
-            include = raw[i + 1]; i += 2
-        elif a.startswith('-'):
-            print(f"Unknown flag: {a}", file=sys.stderr); return 1
+        if a == "--json":
+            use_json = True
+            i += 1
+        elif a.startswith("--context="):
+            try:
+                context = int(a.split("=", 1)[1])
+                i += 1
+            except ValueError:
+                print(f"Invalid --context value: {a.split('=', 1)[1]}", file=sys.stderr)
+                return 1
+        elif a == "--context" and i + 1 < len(raw):
+            try:
+                context = int(raw[i + 1])
+                i += 2
+            except ValueError:
+                print(f"Invalid --context value: {raw[i + 1]}", file=sys.stderr)
+                return 1
+        elif a.startswith("--include="):
+            include = a.split("=", 1)[1]
+            i += 1
+        elif a == "--include" and i + 1 < len(raw):
+            include = raw[i + 1]
+            i += 2
+        elif a.startswith("-"):
+            print(f"Unknown flag: {a}", file=sys.stderr)
+            return 1
         elif not pattern:
-            pattern = a; i += 1
+            pattern = a
+            i += 1
         else:
-            path = a; i += 1
+            path = a
+            i += 1
 
     if not pattern:
         print("No search pattern provided", file=sys.stderr)
@@ -232,7 +249,7 @@ def main():
         results = _py_search(pattern, path, include, context)
 
     if use_json:
-        print(json.dumps({'pattern': pattern, 'path': path, 'results': results, 'count': len(results)}, indent=2))
+        print(json.dumps({"pattern": pattern, "path": path, "results": results, "count": len(results)}, indent=2))
     else:
         if not results:
             print(f"No matches found for `{pattern}`")
@@ -240,8 +257,8 @@ def main():
         print(f"{len(results)} match(es) for `{pattern}`:")
         print()
         for r in results:
-            ctx_before = r.get('context_before', [])
-            ctx_after = r.get('context_after', [])
+            ctx_before = r.get("context_before", [])
+            ctx_after = r.get("context_after", [])
             for cb in ctx_before:
                 if cb.strip():
                     print(f"  {r['file']}:  {cb}")
@@ -253,5 +270,5 @@ def main():
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())

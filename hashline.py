@@ -34,8 +34,8 @@ from pathlib import Path
 
 # Ensure stdout can handle unicode (fixes Windows cp1252 issues)
 try:
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 except (AttributeError, OSError):
     pass
 
@@ -98,8 +98,11 @@ class HashlineMismatchError(HashlineError):
     @staticmethod
     def _format_msg(mismatches, file_lines):
         noun = "anchors do" if len(mismatches) > 1 else "anchor does"
-        lines = [f"Edit rejected: {len(mismatches)} {noun} not match the current file (marked *).",
-                 "The edit was NOT applied. Use the updated content below:", ""]
+        lines = [
+            f"Edit rejected: {len(mismatches)} {noun} not match the current file (marked *).",
+            "The edit was NOT applied. Use the updated content below:",
+            "",
+        ]
         mismatch_set = {m[0] for m in mismatches}
         context_lines = set()
         for ln, _, _ in mismatches:
@@ -143,8 +146,7 @@ def parse_anchor(raw: str) -> tuple[int, str]:
         print(f"Warning: anchor {raw!r} has uppercase chars — lowercased automatically", file=sys.stderr)
     m = re.match(r"^(\d+)([a-z]{2})$", raw.lower())
     if not m:
-        raise HashlineParseError(
-            f"Invalid anchor {raw!r}. Expected format: LINE+HASH (e.g. 42sr)")
+        raise HashlineParseError(f"Invalid anchor {raw!r}. Expected format: LINE+HASH (e.g. 42sr)")
     return int(m.group(1)), m.group(2)
 
 
@@ -195,8 +197,9 @@ def parse_hashline(diff: str) -> list[dict]:
             cursor = _parse_insert_target(m.group(1), line_num, after=True)
             payload, i = _collect_payload(lines, i + 1, line_num, require=True)
             for text in payload:
-                edits.append({"kind": "insert", "cursor": cursor, "text": text,
-                              "line_num": line_num, "idx": edit_index})
+                edits.append(
+                    {"kind": "insert", "cursor": cursor, "text": text, "line_num": line_num, "idx": edit_index}
+                )
                 edit_index += 1
             continue
 
@@ -205,8 +208,9 @@ def parse_hashline(diff: str) -> list[dict]:
             cursor = _parse_insert_target(m.group(1), line_num, after=False)
             payload, i = _collect_payload(lines, i + 1, line_num, require=True)
             for text in payload:
-                edits.append({"kind": "insert", "cursor": cursor, "text": text,
-                              "line_num": line_num, "idx": edit_index})
+                edits.append(
+                    {"kind": "insert", "cursor": cursor, "text": text, "line_num": line_num, "idx": edit_index}
+                )
                 edit_index += 1
             continue
 
@@ -214,8 +218,7 @@ def parse_hashline(diff: str) -> list[dict]:
         if m := re.match(r"^- (.+)$", raw):
             start_a, end_a = parse_range(m.group(1))
             for anchor in expand_range(start_a, end_a):
-                edits.append({"kind": "delete", "anchor": anchor,
-                              "line_num": line_num, "idx": edit_index})
+                edits.append({"kind": "delete", "anchor": anchor, "line_num": line_num, "idx": edit_index})
                 edit_index += 1
             i += 1
             continue
@@ -226,18 +229,22 @@ def parse_hashline(diff: str) -> list[dict]:
             payload, i = _collect_payload(lines, i + 1, line_num, require=False)
             content = payload if payload else [""]
             for text in content:
-                edits.append({"kind": "insert",
-                              "cursor": {"kind": "before_anchor", "anchor": start_a},
-                              "text": text, "line_num": line_num, "idx": edit_index})
+                edits.append(
+                    {
+                        "kind": "insert",
+                        "cursor": {"kind": "before_anchor", "anchor": start_a},
+                        "text": text,
+                        "line_num": line_num,
+                        "idx": edit_index,
+                    }
+                )
                 edit_index += 1
             for anchor in expand_range(start_a, end_a):
-                edits.append({"kind": "delete", "anchor": anchor,
-                              "line_num": line_num, "idx": edit_index})
+                edits.append({"kind": "delete", "anchor": anchor, "line_num": line_num, "idx": edit_index})
                 edit_index += 1
             continue
 
-        raise HashlineParseError(
-            f"line {line_num}: unexpected {raw!r}. Use +, <, =, - or ~payload")
+        raise HashlineParseError(f"line {line_num}: unexpected {raw!r}. Use +, <, =, - or ~payload")
 
     return edits
 
@@ -253,21 +260,19 @@ def _parse_insert_target(raw: str, line_num: int, after: bool = False) -> dict:
     return {"kind": kind, "anchor": anchor}
 
 
-def _collect_payload(lines: list[str], start: int, op_line: int, require: bool
-                    ) -> tuple[list[str], int]:
+def _collect_payload(lines: list[str], start: int, op_line: int, require: bool) -> tuple[list[str], int]:
     """Collect ~prefixed payload lines starting at index `start`."""
     payload = []
     i = start
     while i < len(lines):
         raw = lines[i].rstrip("\n")
         if raw.startswith(HL_EDIT_SEP):
-            payload.append(raw[len(HL_EDIT_SEP):])
+            payload.append(raw[len(HL_EDIT_SEP) :])
             i += 1
             continue
         break
     if require and not payload:
-        raise HashlineParseError(
-            f"line {op_line}: + and < ops need at least one ~payload line")
+        raise HashlineParseError(f"line {op_line}: + and < ops need at least one ~payload line")
     return payload, i
 
 
@@ -332,8 +337,7 @@ def apply_hashline(text: str, edits: list[dict]) -> str:
         else:
             next_content = file_lines[anchor_line]
             next_hash = compute_line_hash(next_content)
-            edit["cursor"] = {"kind": "before_anchor",
-                              "anchor": (anchor_line + 1, next_hash)}
+            edit["cursor"] = {"kind": "before_anchor", "anchor": (anchor_line + 1, next_hash)}
 
     # Separate BOF, EOF, and anchored edits
     bof_lines = []
@@ -379,7 +383,7 @@ def apply_hashline(text: str, edits: list[dict]) -> str:
             continue
 
         replacement = before if delete_line else before + [current]
-        file_lines[idx:idx + 1] = replacement
+        file_lines[idx : idx + 1] = replacement
         if first_changed is None or line < first_changed:
             first_changed = line
 
@@ -541,19 +545,26 @@ def cmd_diff(args: list[str]):
         text = apply_hashline(text, edits)
 
     import difflib
+
     orig_lines = original.split("\n")
     new_lines = text.split("\n")
-    diff_lines = list(difflib.unified_diff(
-        orig_lines, new_lines,
-        fromfile=str(file_path), tofile=str(file_path), lineterm=""))
+    diff_lines = list(
+        difflib.unified_diff(orig_lines, new_lines, fromfile=str(file_path), tofile=str(file_path), lineterm="")
+    )
 
     if use_json:
         import json as _json
-        print(_json.dumps({
-            "file": str(file_path),
-            "changed": original != text,
-            "diff": "\n".join(diff_lines),
-        }, indent=2))
+
+        print(
+            _json.dumps(
+                {
+                    "file": str(file_path),
+                    "changed": original != text,
+                    "diff": "\n".join(diff_lines),
+                },
+                indent=2,
+            )
+        )
     else:
         for line in diff_lines:
             print(line)
@@ -574,6 +585,7 @@ def cmd_replace(args: list[str]):
     --stdin-new: read new text from stdin
     """
     import argparse
+
     parser = argparse.ArgumentParser(description="Replace text using hashline anchors")
     parser.add_argument("file", help="Target file")
     parser.add_argument("old", nargs="?", default=None, help="Old text to replace")
@@ -704,17 +716,13 @@ def main():
 
     if command not in commands:
         print(f"Unknown command: {command}", file=sys.stderr)
-        print("Available: {}{}".format(
-            ", ".join(commands),
-            ", --version"
-        ), file=sys.stderr)
+        print("Available: {}{}".format(", ".join(commands), ", --version"), file=sys.stderr)
         sys.exit(1)
 
     try:
         commands[command](args)
     except HashlineError as e:
-        print(e.display_message if hasattr(e, 'display_message') and e.display_message else str(e),
-              file=sys.stderr)
+        print(e.display_message if hasattr(e, "display_message") and e.display_message else str(e), file=sys.stderr)
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
