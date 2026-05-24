@@ -20,14 +20,12 @@ import re
 import subprocess
 import sys
 
-VERSION = "0.4.0"
-MAX_FILE_SIZE = 50 * 1024 * 1024  # skip files > 50MB
+from common import VERSION, reconfigure_stdout_stderr
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except (AttributeError, OSError):
-    pass
+reconfigure_stdout_stderr()
+
+
+MAX_FILE_SIZE = 50 * 1024 * 1024  # skip files > 50MB
 
 
 def _has_rg() -> bool:

@@ -18,87 +18,9 @@ import os
 import re
 import sys
 
-VERSION = "0.4.0"
+from common import VERSION, LANGUAGE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except (AttributeError, OSError):
-    pass
-
-EXCLUDE_DIRS = {
-    ".git",
-    "__pycache__",
-    "node_modules",
-    ".venv",
-    "venv",
-    ".env",
-    "build",
-    "dist",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".eggs",
-    ".idea",
-    ".vscode",
-    "target",
-    ".next",
-    ".nuxt",
-}
-
-SOURCE_EXTS = {
-    ".py",
-    ".ts",
-    ".tsx",
-    ".js",
-    ".jsx",
-    ".mjs",
-    ".cjs",
-    ".cpp",
-    ".c",
-    ".h",
-    ".hpp",
-    ".cc",
-    ".cxx",
-    ".hxx",
-    ".hh",
-    ".rs",
-    ".go",
-    ".java",
-    ".kt",
-    ".swift",
-}
-
-
-def _find_files(root: str, lang: str = "all") -> list[str]:
-    """Walk project tree and collect source files."""
-    files = []
-    exts = SOURCE_EXTS
-    if lang == "py":
-        exts = {".py"}
-    elif lang == "cpp":
-        exts = {".cpp", ".c", ".h", ".hpp", ".cc", ".cxx", ".hxx", ".hh"}
-    elif lang == "ts":
-        exts = {".ts", ".tsx"}
-    elif lang == "js":
-        exts = {".js", ".jsx", ".mjs", ".cjs"}
-
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIRS and not d.startswith(".")]
-        for fn in filenames:
-            ext = os.path.splitext(fn)[1].lower()
-            if ext in exts:
-                files.append(os.path.join(dirpath, fn))
-    return sorted(files)
-
-
-def _read_file(filepath: str) -> str | None:
-    """Read file with BOM + CRLF normalization."""
-    try:
-        with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
-            return f.read().replace("\r\n", "\n")
-    except (OSError, UnicodeDecodeError):
-        return None
+reconfigure_stdout_stderr()
 
 
 def _find_occurrences(content: str, symbol: str) -> list[int]:
@@ -181,7 +103,7 @@ def main():
         print(f"Root directory not found: {root_dir}", file=sys.stderr)
         return 1
 
-    files = _find_files(root_dir, lang)
+    files = _walk_files(root_dir, LANGUAGE_EXTS.get(lang))
     results = []
 
     for fp in files:

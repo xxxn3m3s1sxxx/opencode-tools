@@ -22,69 +22,9 @@ import re
 import sys
 from collections import defaultdict
 
-VERSION = "0.4.0"
+from common import VERSION, SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except (AttributeError, OSError):
-    pass
-
-EXCLUDE_DIRS = {
-    ".git",
-    "__pycache__",
-    "node_modules",
-    ".venv",
-    "venv",
-    ".env",
-    "build",
-    "dist",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".eggs",
-    ".idea",
-    ".vscode",
-    "target",
-    ".next",
-    ".nuxt",
-}
-
-SOURCE_EXTS = {
-    ".py",
-    ".ts",
-    ".tsx",
-    ".js",
-    ".jsx",
-    ".mjs",
-    ".cjs",
-    ".cpp",
-    ".c",
-    ".h",
-    ".hpp",
-    ".cc",
-    ".cxx",
-    ".hxx",
-    ".hh",
-}
-
-
-def _walk_files(root: str) -> list[str]:
-    files = []
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIRS and not d.startswith(".")]
-        for fn in filenames:
-            if os.path.splitext(fn)[1].lower() in SOURCE_EXTS:
-                files.append(os.path.join(dirpath, fn))
-    return sorted(files)
-
-
-def _read_file(filepath: str) -> str | None:
-    try:
-        with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
-            return f.read().replace("\r\n", "\n")
-    except (OSError, UnicodeDecodeError):
-        return None
+reconfigure_stdout_stderr()
 
 
 # ─── Import Parsers ──────────────────────────────────────────────────────

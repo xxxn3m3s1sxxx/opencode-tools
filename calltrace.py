@@ -24,6 +24,10 @@ import os
 import re
 import sys
 
+from common import VERSION, reconfigure_stdout_stderr
+
+reconfigure_stdout_stderr()
+
 try:
     from impact import ImpactAnalyzer, _is_python, _grep_find_references
 except ImportError:
@@ -359,7 +363,7 @@ def main():
     args = sys.argv[1:]
 
     if args[0] == "--version":
-        print("calltrace.py 0.4.0")
+        print(f"calltrace.py {VERSION}")
         return 0
 
     use_json = "--json" in args

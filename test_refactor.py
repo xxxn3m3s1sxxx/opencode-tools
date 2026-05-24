@@ -13,6 +13,7 @@ from refactor import (
     _find_ast_references,
     _find_refs_in_file,
     _apply_rename,
+    SOURCE_EXTS,
     main,
 )
 
@@ -88,7 +89,7 @@ class TestWalkFiles(unittest.TestCase):
                 open(os.path.join(tmp, f), "w").close()
             os.makedirs(os.path.join(tmp, "__pycache__"), exist_ok=True)
             open(os.path.join(tmp, "__pycache__", "ignore.py"), "w").close()
-            files = _walk_files(tmp)
+            files = _walk_files(tmp, SOURCE_EXTS)
             names = [os.path.basename(f) for f in files]
             self.assertIn("a.py", names)
             self.assertIn("b.py", names)

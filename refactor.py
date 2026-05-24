@@ -17,41 +17,15 @@ import os
 import re
 import sys
 
-VERSION = "0.4.0"
+from common import VERSION, PY_SOURCE_EXTS, TS_SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except (AttributeError, OSError):
-    pass
+reconfigure_stdout_stderr()
 
 
-PY_SOURCE_EXT = {".py", ".pyi", ".pyx"}
-TS_SOURCE_EXT = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
+PY_SOURCE_EXT = PY_SOURCE_EXTS | {".pyi", ".pyx"}
+TS_SOURCE_EXT = TS_SOURCE_EXTS
 SOURCE_EXTS = PY_SOURCE_EXT | TS_SOURCE_EXT
-SKIP_DIRS = {".git", "__pycache__", "node_modules", ".venv", "venv", "env", "dist", "build"}
 SKIP_FILES = {".gitignore", ".gitattributes"}
-
-
-def _walk_files(root: str) -> list[str]:
-    files = []
-    for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
-        for f in sorted(filenames):
-            if f in SKIP_FILES:
-                continue
-            ext = os.path.splitext(f)[1].lower()
-            if ext in SOURCE_EXTS:
-                files.append(os.path.join(dirpath, f))
-    return files
-
-
-def _read_file(filepath: str) -> str | None:
-    try:
-        with open(filepath, "r", encoding="utf-8-sig", errors="replace") as f:
-            return f.read().replace("\r\n", "\n")
-    except (OSError, UnicodeDecodeError):
-        return None
 
 
 def _find_name_in_line(line: str, col_start: int, symbol: str) -> int | None:
@@ -402,7 +376,7 @@ def main():
             return 1
         files = [single_file]
     else:
-        files = _walk_files(root)
+        files = _walk_files(root, SOURCE_EXTS)
 
     if not files:
         print("No supported source files found", file=sys.stderr)

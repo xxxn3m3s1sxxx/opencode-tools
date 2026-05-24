@@ -22,8 +22,6 @@ Edit format (stdin or file):
   - 30hi..35zz     delete range
 """
 
-VERSION = "0.4.0"
-
 import hashlib
 import itertools
 import re
@@ -32,12 +30,9 @@ import sys
 import string
 from pathlib import Path
 
-# Ensure stdout can handle unicode (fixes Windows cp1252 issues)
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except (AttributeError, OSError):
-    pass
+from common import VERSION, reconfigure_stdout_stderr
+
+reconfigure_stdout_stderr()
 
 
 def _read_file(path: Path) -> str:

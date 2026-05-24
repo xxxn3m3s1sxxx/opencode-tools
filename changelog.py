@@ -24,13 +24,9 @@ import re
 import subprocess
 import sys
 
-VERSION = "0.4.0"
+from common import VERSION, reconfigure_stdout_stderr
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except (AttributeError, OSError):
-    pass
+reconfigure_stdout_stderr()
 
 CATEGORIES = {
     "feat": "Features",

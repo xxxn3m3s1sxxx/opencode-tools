@@ -6,6 +6,7 @@
   "license": "MIT",
   "type": "module",
   "files": [
+    "common.py",
     "utils.ts",
     "hashline.ts",
     "hashline.py",

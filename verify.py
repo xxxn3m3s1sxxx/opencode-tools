@@ -26,10 +26,9 @@ import re
 import subprocess
 import sys
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except (AttributeError, OSError):
-    pass
+from common import VERSION, reconfigure_stdout_stderr
+
+reconfigure_stdout_stderr()
 
 
 def _read_file(filepath):
@@ -307,7 +306,7 @@ def main():
 
     # Handle --version before flag parsing
     if args and args[0] == "--version":
-        print("verify.py 0.4.0")
+        print(f"verify.py {VERSION}")
         return 0
 
     # Parse flags

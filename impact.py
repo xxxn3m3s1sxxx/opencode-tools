@@ -23,11 +23,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-try:
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-except (AttributeError, OSError):
-    pass
+from common import VERSION, reconfigure_stdout_stderr
+
+reconfigure_stdout_stderr()
 
 
 def _read_file(filepath):
@@ -942,7 +940,7 @@ def main():
 
     # Handle --version
     if cmd == "--version":
-        print("impact.py 0.4.0")
+        print(f"impact.py {VERSION}")
         return 0
 
     analyzer = ImpactAnalyzer(root_dir)
