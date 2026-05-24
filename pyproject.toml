@@ -22,11 +22,12 @@ hashline = "hashline:main"
 health = "health:main"
 snapshot = "snapshot:main"
 todo = "todo:main"
+tags = "tags:main"
 
 [tool.setuptools]
 py-modules = [
     "common", "graph", "changelog", "impact", "lint", "refactor",
-    "rename", "verify", "search", "calltrace", "hashline", "health", "snapshot", "todo",
+    "rename", "verify", "search", "calltrace", "hashline", "health", "snapshot", "todo", "tags",
 ]
 
 [tool.ruff]

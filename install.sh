@@ -9,7 +9,7 @@
 set -euo pipefail
 
 REPO="https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
-TOOLS="utils hashline impact verify trace rename graph changelog search lint refactor"
+TOOLS="utils hashline impact verify trace rename graph changelog search lint refactor health snapshot todo tags"
 
 # --- Detect local mode ---
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

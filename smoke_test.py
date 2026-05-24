@@ -231,6 +231,21 @@ def test_todo():
     check("--version shows 0.5.0", "0.5.0" in r.stdout)
 
 
+def test_tags():
+    print("\n--- tags ---")
+    r = _tool("tags", "--stats")
+    check("tags --stats works", r.returncode == 0 and "tags" in r.stdout)
+
+    r = _tool("tags", "ImpactAnalyzer")
+    check("tags lookup works", r.returncode == 0 and "ImpactAnalyzer" in r.stdout)
+
+    r = _tool("tags", "N0N3X1STENT_SYM")
+    check("tags missing symbol returns 1", r.returncode == 1)
+
+    r = _tool("tags", "--version")
+    check("--version shows 0.5.0", "0.5.0" in r.stdout)
+
+
 def main():
     print(f"Smoke test: opencode-tools v0.5.0 self-test")
     print(f"Tools dir: {TOOLS_DIR}")

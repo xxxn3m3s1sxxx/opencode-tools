@@ -28,8 +28,14 @@
     "lint.py",
     "refactor.ts",
     "refactor.py",
+    "health.ts",
     "health.py",
+    "snapshot.ts",
     "snapshot.py",
+    "todo.ts",
+    "todo.py",
+    "tags.ts",
+    "tags.py",
     "README.md"
   ],
   "scripts": {

@@ -12,7 +12,7 @@ REM   install.bat C:\project /local
 setlocal enabledelayedexpansion
 
 set "REPO_BASE=https://raw.githubusercontent.com/xxxn3m3s1sxxx/opencode-tools/main"
-set "TOOLS=utils hashline impact verify trace changelog graph lint refactor rename search"
+set "TOOLS=utils hashline impact verify trace changelog graph lint refactor rename search health snapshot todo tags"
 set "LOCAL=0"
 
 REM --- Check for /local flag ---
