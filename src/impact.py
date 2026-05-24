@@ -393,7 +393,7 @@ def _cpp_find_callees(filepath: str, symbol: str) -> list[dict[str, Any]]:
 
     total = len(source)
 
-    func_def = re.compile(r"(?:[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{")
+    func_def = re.compile(r"(?:[\w:<>*&]+\s+)?(\w+)\s*\([^;{]*\)\s*(?:const|override)?\s*\{", re.DOTALL)
     call_pat = re.compile(r"(\w+)\s*\(")
 
     for m in func_def.finditer(source):
