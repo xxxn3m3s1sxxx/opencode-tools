@@ -26,8 +26,7 @@ from common import VERSION, SOURCE_EXTS, _walk_files, _read_file, reconfigure_st
 reconfigure_stdout_stderr()
 
 TAG_PATTERN = re.compile(
-    r"(?i)(?<!\w)(TODO|FIXME|HACK|XXX|BUG|OPTIMIZE|NOTE|REVIEW|WORKAROUND)"
-    r"(?:\(([^)]*)\))?\s*:\s*(.*?)$",
+    r"(?i)(?<!\w)(TODO|FIXME|HACK|XXX|BUG|OPTIMIZE|NOTE|REVIEW|WORKAROUND)" r"(?:\(([^)]*)\))?\s*:\s*(.*?)$",
     re.MULTILINE,
 )
 TAG_ORDER = ["TODO", "FIXME", "HACK", "XXX", "BUG", "OPTIMIZE", "NOTE", "REVIEW", "WORKAROUND"]

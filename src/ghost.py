@@ -61,8 +61,12 @@ def _unused_py(filepath: str, min_uses: int) -> list[dict[str, Any]]:
             references[node.attr] += 1
 
     _TEST_LIFECYCLE = {
-        "setUp", "tearDown", "setUpClass", "tearDownClass",
-        "setUpModule", "tearDownModule",
+        "setUp",
+        "tearDown",
+        "setUpClass",
+        "tearDownClass",
+        "setUpModule",
+        "tearDownModule",
     }
 
     for name, def_count in definitions.items():

@@ -51,16 +51,11 @@ CATEGORIES = {
 }
 
 COMMIT_RE = re.compile(
-    r"^(?P<hash>[a-f0-9]+) "
-    r"(?:\((?P<scope>[^)]*)\)\s+)?"
-    r"(?P<subject>.+)$",
+    r"^(?P<hash>[a-f0-9]+) " r"(?:\((?P<scope>[^)]*)\)\s+)?" r"(?P<subject>.+)$",
 )
 
 CONVENTIONAL_RE = re.compile(
-    r"^(?P<type>\w+)(?:\((?P<scope>[^)]*)\))?"
-    r"(?P<breaking>!)?"
-    r":\s*"
-    r"(?P<subject>.+)$",
+    r"^(?P<type>\w+)(?:\((?P<scope>[^)]*)\))?" r"(?P<breaking>!)?" r":\s*" r"(?P<subject>.+)$",
 )
 
 

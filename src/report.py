@@ -25,12 +25,20 @@ reconfigure_stdout_stderr()
 
 def _run_tool(tool: str, args: list[str], root: str, timeout: int = 120) -> dict[str, Any]:
     start = time.time()
-    py = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{tool}.py") if tool != "health" else os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{tool}.py")
+    py = (
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{tool}.py")
+        if tool != "health"
+        else os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{tool}.py")
+    )
     try:
         r = subprocess.run(
             [sys.executable, py] + args,
-            capture_output=True, text=True, encoding="utf-8",
-            errors="replace", timeout=timeout, cwd=root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            cwd=root,
         )
         elapsed = round(time.time() - start, 2)
         return {
@@ -43,11 +51,18 @@ def _run_tool(tool: str, args: list[str], root: str, timeout: int = 120) -> dict
     except FileNotFoundError:
         return {"tool": tool, "status": "error", "exit_code": -1, "elapsed": 0, "output": "tool not found"}
     except subprocess.TimeoutExpired:
-        return {"tool": tool, "status": "error", "exit_code": -1, "elapsed": round(time.time() - start, 2), "output": "timed out"}
+        return {
+            "tool": tool,
+            "status": "error",
+            "exit_code": -1,
+            "elapsed": round(time.time() - start, 2),
+            "output": "timed out",
+        }
 
 
 def _parse_health_json(output: str) -> dict[str, Any]:
     import re
+
     metrics: dict[str, Any] = {}
     m = re.search(r"(\d+) source files", output)
     if m:
@@ -65,6 +80,7 @@ def _parse_churn(output: str) -> int:
 
 def _parse_audit(output: str) -> dict[str, int]:
     import re
+
     counts: dict[str, int] = {"high": 0, "medium": 0, "low": 0, "total": 0}
     m = re.search(r"Findings: (\d+) total \((\d+) high, (\d+) medium, (\d+) low\)", output)
     if m:
@@ -90,7 +106,9 @@ def generate_markdown(results: list[dict[str, Any]]) -> str:
 
     total_elapsed = sum(r["elapsed"] for r in results)
     all_ok = all(r["status"] == "ok" for r in results)
-    lines.append(f"**Overall: {'✅ PASS' if all_ok else '❌ FAIL'}** — {len(results)} checks in {_fmt_time(total_elapsed)}")
+    lines.append(
+        f"**Overall: {'✅ PASS' if all_ok else '❌ FAIL'}** — {len(results)} checks in {_fmt_time(total_elapsed)}"
+    )
     lines.append("")
 
     lines.append("## Summary")
@@ -145,7 +163,9 @@ def generate_markdown(results: list[dict[str, Any]]) -> str:
             lines.append("")
 
     if "fmt" in all_outputs:
-        status = "✅ Formatted" if all_outputs.get("fmt") and "ok" in str(all_outputs["fmt"]).lower() else "❌ Unformatted"
+        status = (
+            "✅ Formatted" if all_outputs.get("fmt") and "ok" in str(all_outputs["fmt"]).lower() else "❌ Unformatted"
+        )
         lines.append(f"### Formatting: {status}")
         lines.append("")
 

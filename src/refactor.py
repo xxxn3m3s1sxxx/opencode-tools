@@ -20,7 +20,15 @@ import re
 import sys
 from typing import Any
 
-from common import VERSION, PY_SOURCE_EXTS, TS_SOURCE_EXTS, _walk_files, _read_file, reconfigure_stdout_stderr, _safe_relpath
+from common import (
+    VERSION,
+    PY_SOURCE_EXTS,
+    TS_SOURCE_EXTS,
+    _walk_files,
+    _read_file,
+    reconfigure_stdout_stderr,
+    _safe_relpath,
+)
 
 reconfigure_stdout_stderr()
 
