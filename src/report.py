@@ -11,6 +11,7 @@ Usage:
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import os
 import subprocess
@@ -25,11 +26,7 @@ reconfigure_stdout_stderr()
 
 def _run_tool(tool: str, args: list[str], root: str, timeout: int = 120) -> dict[str, Any]:
     start = time.time()
-    py = (
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{tool}.py")
-        if tool != "health"
-        else os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{tool}.py")
-    )
+    py = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{tool}.py")
     try:
         r = subprocess.run(
             [sys.executable, py] + args,
@@ -58,6 +55,30 @@ def _run_tool(tool: str, args: list[str], root: str, timeout: int = 120) -> dict
             "elapsed": round(time.time() - start, 2),
             "output": "timed out",
         }
+
+
+def _run_tools_parallel(tool_specs: list[tuple[str, list[str], str, int]]) -> list[dict[str, Any]]:
+    """Run multiple tools in parallel via thread pool."""
+    results: list[dict[str, Any]] = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(tool_specs)) as executor:
+        futures = {
+            executor.submit(_run_tool, tool, args, root, timeout): tool for tool, args, root, timeout in tool_specs
+        }
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                tool_name = futures[future]
+                results.append(
+                    {
+                        "tool": tool_name,
+                        "status": "error",
+                        "exit_code": -1,
+                        "elapsed": 0,
+                        "output": str(e),
+                    }
+                )
+    return results
 
 
 def _parse_health_json(output: str) -> dict[str, Any]:
@@ -207,15 +228,23 @@ def main() -> int:
         return 1
 
     results: list[dict[str, Any]] = []
-    results.append(_run_tool("health", ["--quick"], root, 30))
+    tool_specs: list[tuple[str, list[str], str, int]] = [
+        ("health", ["--quick"], root, 30),
+    ]
 
     if not quick:
-        results.append(_run_tool("check", ["--quick"], root, 180))
-        results.append(_run_tool("audit", ["--quiet", "."], root, 60))
-        results.append(_run_tool("churn", ["--min-commits", "1"], root, 30))
-        results.append(_run_tool("fmt", ["--ruff", "--check"], root, 60))
+        tool_specs.extend(
+            [
+                ("check", ["--quick"], root, 180),
+                ("audit", ["--quiet", "."], root, 60),
+                ("churn", ["--min-commits", "1"], root, 30),
+                ("fmt", ["--ruff", "--check"], root, 60),
+            ]
+        )
     else:
-        results.append(_run_tool("audit", ["--quiet", "--root", root], root, 30))
+        tool_specs.append(("audit", ["--quiet", "--root", root], root, 30))
+
+    results = _run_tools_parallel(tool_specs)
 
     if use_json:
         print(json.dumps({"results": results, "count": len(results)}, indent=2))

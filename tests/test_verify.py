@@ -84,35 +84,33 @@ class TestChecksum(unittest.TestCase):
 
 class TestFindLine(unittest.TestCase):
     def setUp(self):
-        self.lines = ["hello world", "foo bar", "HELLO AGAIN", ""]
+        self.raw = "hello world\nfoo bar\nHELLO AGAIN\n"
 
     def test_find_exact(self):
-        self.assertEqual(_find_line(self.lines, "hello"), 1)
+        self.assertEqual(_find_line(self.raw, "hello"), 1)
 
     def test_find_case_insensitive(self):
-        self.assertEqual(_find_line(self.lines, "HELLO"), 1)
+        self.assertEqual(_find_line(self.raw, "HELLO"), 1)
 
     def test_find_partial(self):
-        self.assertEqual(_find_line(self.lines, "foo"), 2)
+        self.assertEqual(_find_line(self.raw, "foo"), 2)
 
     def test_find_not_found(self):
-        self.assertIsNone(_find_line(self.lines, "nonexistent"))
+        self.assertIsNone(_find_line(self.raw, "nonexistent"))
 
     def test_empty_file(self):
-        self.assertIsNone(_find_line([], "anything"))
+        self.assertIsNone(_find_line("", "anything"))
 
 
 class TestCountMatches(unittest.TestCase):
     def test_count(self):
-        lines = ["foo", "bar", "foo foo", "baz"]
-        self.assertEqual(_count_matches(lines, "foo"), 2)
+        self.assertEqual(_count_matches("foo\nbar\nfoo foo\nbaz\n", "foo"), 3)
 
     def test_count_zero(self):
-        self.assertEqual(_count_matches([], "foo"), 0)
+        self.assertEqual(_count_matches("", "foo"), 0)
 
     def test_count_case_insensitive(self):
-        lines = ["FOO", "foo"]
-        self.assertEqual(_count_matches(lines, "foo"), 2)
+        self.assertEqual(_count_matches("FOO\nfoo\n", "foo"), 2)
 
 
 class TestCmdSummary(unittest.TestCase):

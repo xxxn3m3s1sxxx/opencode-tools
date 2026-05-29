@@ -61,18 +61,17 @@ def _checksum(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
 
-def _find_line(lines: list[str], text: str) -> int | None:
+def _find_line(raw: str, text: str) -> int | None:
     """Find line number containing text (case-insensitive, 1-indexed)."""
     pattern = re.compile(re.escape(text), re.IGNORECASE)
-    for i, line in enumerate(lines):
-        if pattern.search(line):
-            return i + 1
-    return None
+    m = pattern.search(raw)
+    if m is None:
+        return None
+    return raw[: m.start()].count("\n") + 1
 
 
-def _count_matches(lines: list[str], text: str) -> int:
-    pattern = re.compile(re.escape(text), re.IGNORECASE)
-    return sum(1 for line in lines if pattern.search(line))
+def _count_matches(raw: str, text: str) -> int:
+    return len(re.findall(re.escape(text), raw, re.IGNORECASE))
 
 
 def cmd_summary(filepath: str, lines: list[str], raw: str) -> dict[str, Any]:
@@ -144,8 +143,8 @@ def cmd_diff(filepath: str, staged: bool = False, context_lines: int = 3) -> dic
 
 def cmd_contains(filepath: str, lines: list[str], raw: str, text: str, should_exist: bool = True) -> dict[str, Any]:
     """Check if text exists (or doesn't exist) in file."""
-    found_line = _find_line(lines, text)
-    count = _count_matches(lines, text)
+    found_line = _find_line(raw, text)
+    count = _count_matches(raw, text)
 
     if should_exist:
         ok = found_line is not None
@@ -191,10 +190,10 @@ def cmd_line_check(filepath: str, lines: list[str], raw: str, line_no: int, expe
 
 def cmd_replace_verify(filepath: str, lines: list[str], raw: str, old_text: str, new_text: str) -> dict[str, Any]:
     """After a replace: confirm old is gone and new is present."""
-    old_found = _find_line(lines, old_text)
-    new_found = _find_line(lines, new_text)
-    old_count = _count_matches(lines, old_text)
-    new_count = _count_matches(lines, new_text)
+    old_found = _find_line(raw, old_text)
+    new_found = _find_line(raw, new_text)
+    old_count = _count_matches(raw, old_text)
+    new_count = _count_matches(raw, new_text)
 
     old_ok = old_found is None
     new_ok = new_found is not None
