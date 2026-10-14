@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      churn: tool({
+export default {
+  id: "churn",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "churn",
         description: `Git churn analysis. Find files with the most changes.
 
 Usage:
@@ -16,10 +15,8 @@ Usage:
   churn --since <date>            Commits since date (e.g. '2026-01-01')
   churn --min-commits <N>         Minimum commits (default: 2)
   churn --json                    JSON output`,
-        args: {
-          command: z.string().describe("The churn command and args (e.g. '-n 10', '--since 2026-01-01')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The churn command and args (e.g. '-n 10', '--since 2026-01-01')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^churn\s+/, "");
@@ -35,7 +32,7 @@ Usage:
             return `churn error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

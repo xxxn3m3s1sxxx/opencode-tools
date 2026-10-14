@@ -1,7 +1,6 @@
-import type { Plugin } from "@opencode-ai/plugin";
-import { tool } from "@opencode-ai/plugin";
 import { spawnSync } from "child_process";
 import { detectPython, splitArgs, findToolPy } from "./utils.ts";
+import { registerTool, commandSchema } from "./utils.ts"
 
 interface ImpactResult {
   symbol: string;
@@ -102,11 +101,11 @@ async function runImpact(args: string[], cwd: string): Promise<string> {
   return proc.stdout || "";
 }
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      impact: tool({
+export default {
+  id: "impact",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "impact",
         description: `Change Impact Analyzer. Find definitions, references, tests, and callers for any symbol in the codebase.
 
 Usage:
@@ -123,10 +122,8 @@ Examples:
   impact atlas_infer.py:152    Infer symbol at line 152
   impact AtlasModel --py       Limit to Python files
   impact generate --cpp        Limit to C++ files`,
-        args: {
-          command: z.string().describe("The impact command and symbol to analyze (e.g. 'atlas_load', 'def forward', 'tests AtlasModel', 'graph atlas_valloc')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The impact command and symbol to analyze (e.g. 'atlas_load', 'def forward', 'tests AtlasModel', 'graph atlas_valloc')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const args = splitArgs(command.trim().replace(/^impact(?:\.py)?\s+/, ""));
@@ -151,7 +148,7 @@ Examples:
             return `impact error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

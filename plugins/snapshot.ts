@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      snapshot: tool({
+export default {
+  id: "snapshot",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "snapshot",
         description: `Capture workspace context for MemPalace auto-save.
 
 Takes a snapshot of the current workspace state: git status, file changes,
@@ -18,10 +17,8 @@ Usage:
   snapshot --show                   Print snapshot to stdout only
   snapshot --mine                   Save + mine into MemPalace
   snapshot --json                   JSON output`,
-        args: {
-          command: z.string().describe("The snapshot command and args (e.g. '--show', '--json', '')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The snapshot command and args (e.g. '--show', '--json', '')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^snapshot\s+/, "");
@@ -37,7 +34,7 @@ Usage:
             return `snapshot error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

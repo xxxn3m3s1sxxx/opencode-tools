@@ -1,7 +1,6 @@
-import type { Plugin } from "@opencode-ai/plugin";
-import { tool } from "@opencode-ai/plugin";
 import { spawnSync } from "child_process";
 import { detectPython, splitArgs, findToolPy } from "./utils.ts";
+import { registerTool, commandSchema } from "./utils.ts"
 
 interface TraceCaller {
   type: string; caller: string; callee: string; file: string; line: number; context?: string;
@@ -72,11 +71,11 @@ function runPy(args: string[], cwd: string): string {
   return proc.stdout;
 }
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      trace: tool({
+export default {
+  id: "calltrace",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "trace",
         description: `Recursive call chain analyzer. Follow execution paths through the codebase.
 
 Usage:
@@ -89,10 +88,8 @@ Examples:
   trace forward                 Trace forward() through the codebase
   trace generate_c --down -d 3  Deep dive into generate_c callees
   trace AtlasModel --up         Who references AtlasModel`,
-        args: {
-          command: z.string().describe("Command (e.g. 'forward', 'generate_c --down -d 3', 'AtlasModel --up')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("Command (e.g. 'forward', 'generate_c --down -d 3', 'AtlasModel --up')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const args = splitArgs(command.trim().replace(/^trace(?:\.py)?\s+/, ""));
@@ -106,7 +103,7 @@ Examples:
             return `trace error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

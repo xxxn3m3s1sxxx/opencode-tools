@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      refactor: tool({
+export default {
+  id: "refactor",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "refactor",
         description: `AST-based symbol renaming (safer than word-boundary).
 
 Usage:
@@ -23,10 +22,8 @@ Examples:
   refactor foo bar                       Rename foo -> bar everywhere
   refactor myFunc myFunc2 --dry-run      Preview before renaming
   refactor old_name new_name --file src/main.py`,
-        args: {
-          command: z.string().describe("The refactor command (e.g. 'foo bar', 'foo bar --dry-run', 'foo bar --file src/main.py')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The refactor command (e.g. 'foo bar', 'foo bar --dry-run', 'foo bar --file src/main.py')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^refactor\s+/, "");
@@ -42,7 +39,7 @@ Examples:
             return `refactor error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

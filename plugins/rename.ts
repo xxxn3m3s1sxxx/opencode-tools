@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      rename: tool({
+export default {
+  id: "rename",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "rename",
         description: `Word-boundary symbol rename across project files.
 
 Usage:
@@ -23,10 +22,8 @@ Examples:
   rename foo bar                       Rename foo -> bar everywhere
   rename myFunc myFunc2 --dry-run      Preview before renaming
   rename old_name new_name --lang py   Only Python files`,
-        args: {
-          command: z.string().describe("The rename command and args (e.g. 'foo bar', 'foo bar --dry-run', 'foo bar --lang py')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The rename command and args (e.g. 'foo bar', 'foo bar --dry-run', 'foo bar --lang py')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^rename\s+/, "");
@@ -42,7 +39,7 @@ Examples:
             return `rename error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

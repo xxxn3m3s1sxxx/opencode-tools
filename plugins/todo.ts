@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      todo: tool({
+export default {
+  id: "todo",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "todo",
         description: `Scan for TODO, FIXME, HACK, XXX markers across the codebase.
 
 Usage:
@@ -18,10 +17,8 @@ Usage:
   todo --root <dir>                 Scan a specific directory
 
 Tag types: TODO, FIXME, HACK, XXX, BUG, OPTIMIZE, NOTE, REVIEW, WORKAROUND`,
-        args: {
-          command: z.string().describe("The todo command and args (e.g. '--count', '--json', '')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The todo command and args (e.g. '--count', '--json', '')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^todo\s+/, "");
@@ -37,7 +34,7 @@ Tag types: TODO, FIXME, HACK, XXX, BUG, OPTIMIZE, NOTE, REVIEW, WORKAROUND`,
             return `todo error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

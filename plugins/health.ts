@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      health: tool({
+export default {
+  id: "health",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "health",
         description: `Project health summary. Analyze test status, lint quality, and code metrics.
 
 Usage:
@@ -22,10 +21,8 @@ Metrics:
   - ruff:     violation count
   - lines:    total lines of code per language
   - files:    source file count per language`,
-        args: {
-          command: z.string().describe("The health command and args (e.g. '--quick', '--check --quick', '--json')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The health command and args (e.g. '--quick', '--check --quick', '--json')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^health\s+/, "");
@@ -41,7 +38,7 @@ Metrics:
             return `health error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

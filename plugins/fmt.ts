@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      fmt: tool({
+export default {
+  id: "fmt",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "fmt",
         description: `Format runner. Run ruff format and/or prettier on the project.
 
 Usage:
@@ -17,10 +16,8 @@ Usage:
   fmt --prettier                    Prettier only
   fmt --all                         Both ruff and prettier
   fmt --json                        JSON output`,
-        args: {
-          command: z.string().describe("The fmt command and args (e.g. '--check', '--ruff --json')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The fmt command and args (e.g. '--check', '--ruff --json')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^fmt\s+/, "");
@@ -36,7 +33,7 @@ Usage:
             return `fmt error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+
