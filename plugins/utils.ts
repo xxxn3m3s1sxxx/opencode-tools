@@ -22,6 +22,14 @@ function _derivePluginDir(): string {
 if (!_pluginDir) _pluginDir = _derivePluginDir()
 
 export function findToolPy(name: string, cwd: string): string {
+  // Guard gegen Scan-/Fehl-Aufrufe mit Kontext-Objekt/undefined statt Strings:
+  // OpenCode ruft beim Plugin-Scan exportierte Funktionen ggf. mit dem
+  // Plugin-Kontext auf → ohne Guard wirft path.resolve den Node-internen
+  // TypeError 'The "paths[N]" property must be of type string'.
+  // WICHTIG: No-Op (return ""), KEIN throw — ein throw wird vom Loader als
+  // 'failed to load plugin' gewertet und kaskadiert den Server-Boot.
+  if (typeof name !== "string" || name.length === 0) return ""
+  if (typeof cwd !== "string" || cwd.length === 0) cwd = process.cwd()
   const candidates: string[] = []
   if (_pluginDir) {
     candidates.push(resolve(_pluginDir, name))
@@ -58,3 +66,56 @@ export function splitArgs(cmd: string): string[] {
   while ((m = re.exec(cmd)) !== null) args.push(m[1] || m[2] || m[0])
   return args
 }
+
+// ===========================================================================
+// v2-Adapter (OpenCode >= 2.0, 2026-10-14)
+// ===========================================================================
+// v1-Funktions-Exporte scheitern unter v2 mit
+// PluginModule.LoadError ("must export a default definition with an id and an
+// effect or setup function"). Jedes Tool-Plugin exportiert daher
+// `{ id, setup(ctx) }` und registriert sein Tool ueber ctx.tool.transform.
+// Diese Helfer bilden das ab und halten die v1-Execute-Bodies unveraendert
+// (Signatur `run(input, ctx)` mit ctx = { cwd, ...execCtx }).
+
+export function commandSchema(description: string) {
+  return {
+    type: "object" as const,
+    properties: { command: { type: "string" as const, description } },
+    required: ["command"],
+    additionalProperties: false,
+  }
+}
+
+export function registerTool(
+  ctx: any,
+  spec: {
+    name: string
+    description: string
+    input: any
+    run: (input: any, ctx: any) => any
+  },
+) {
+  const transform = ctx?.tool?.transform
+  if (typeof transform !== "function") {
+    // Kein v2-tool-Domain vorhanden -> No-Op statt throw (Loader-Gate).
+    console.warn(`[utils] ctx.tool.transform fehlt - Tool "${spec.name}" nicht registriert`)
+    return Promise.resolve()
+  }
+  return transform((editor: any) => {
+    editor.add({
+      name: spec.name,
+      description: spec.description,
+      input: spec.input,
+      async execute(input: any, execCtx: any) {
+        const cwd = execCtx?.cwd || execCtx?.directory || execCtx?.worktree || process.cwd()
+        const out = await spec.run(input, { ...(execCtx || {}), cwd })
+        return { content: typeof out === "string" ? out : String(out) }
+      },
+    })
+  })
+}
+
+// utils.ts wird ebenfalls als Plugin gescannt -> gueltiger Default-Export,
+// damit kein "failed to load plugin" mehr entsteht. Reines No-Op (die
+// Named-Exports oben sind der eigentliche Zweck des Moduls).
+export default { id: "tools-utils", async setup() { /* shared helper, not a plugin */ } }

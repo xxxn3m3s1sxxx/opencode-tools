@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      audit: tool({
+export default {
+  id: "audit",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "audit",
         description: `Secret scanner. Find API keys, passwords, tokens, private keys.
 
 Usage:
@@ -16,10 +15,8 @@ Usage:
   audit --json                    JSON output
   audit --quiet                   Only show secrets, no header/footer
   audit --allowlist <file>        File with allowed patterns`,
-        args: {
-          command: z.string().describe("The audit command and args (e.g. '--json', '--quiet')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The audit command and args (e.g. '--json', '--quiet')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^audit\s+/, "");
@@ -35,7 +32,7 @@ Usage:
             return `audit error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

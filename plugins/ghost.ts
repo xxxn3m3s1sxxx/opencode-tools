@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      ghost: tool({
+export default {
+  id: "ghost",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "ghost",
         description: `Dead code finder. Detect unused functions, classes, and imports.
 
 Usage:
@@ -16,10 +15,8 @@ Usage:
   ghost --lang ts                 TypeScript/JS only
   ghost --json                    JSON output
   ghost --min-uses <N>            Minimum uses (default: 1)`,
-        args: {
-          command: z.string().describe("The ghost command and args (e.g. '--lang py --json')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The ghost command and args (e.g. '--lang py --json')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^ghost\s+/, "");
@@ -35,7 +32,7 @@ Usage:
             return `ghost error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

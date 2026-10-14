@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin";
-import { tool } from "@opencode-ai/plugin";
 import { spawnSync } from "child_process";
 import { detectPython, splitArgs, findToolPy } from "./utils.ts";
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      verify: tool({
+export default {
+  id: "verify",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "verify",
         description: `Post-edit verification tool. Confirms edits were applied correctly.
 
 Usage:
@@ -24,10 +23,8 @@ Examples:
   verify impact.py --old "bug" --new "fix"  Replace verified?
   verify atlas_api.cpp                      File summary
   verify atlas_infer.py:612 --context 5     Context at line 612`,
-        args: {
-          command: z.string().describe("The verify command arguments (e.g. 'atlas_api.cpp:20 atlas_valloc', 'impact.py --summary', 'hashline.py --not bug')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The verify command arguments (e.g. 'atlas_api.cpp:20 atlas_valloc', 'impact.py --summary', 'hashline.py --not bug')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^verify(?:\.py)?\s+/, "");
@@ -43,7 +40,7 @@ Examples:
             return `verify error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

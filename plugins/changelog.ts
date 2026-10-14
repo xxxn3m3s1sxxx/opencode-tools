@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      changelog: tool({
+export default {
+  id: "changelog",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "changelog",
         description: `Formatted git log with category grouping.
 
 Usage:
@@ -23,10 +22,8 @@ Examples:
   changelog -n 10                   Last 10 commits
   changelog --since 2025-01-01      This year's commits
   changelog --file src/main.ts      File history`,
-        args: {
-          command: z.string().describe("The changelog command and args (e.g. '-n 10', '--since 2025-01-01', 'v1.0..HEAD')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The changelog command and args (e.g. '-n 10', '--since 2025-01-01', 'v1.0..HEAD')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^changelog\s+/, "");
@@ -42,7 +39,7 @@ Examples:
             return `changelog error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      tags: tool({
+export default {
+  id: "tags",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "tags",
         description: `ctags-style symbol indexer. Build a searchable index of all definitions.
 
 Usage:
@@ -18,10 +17,8 @@ Usage:
   tags --root <dir>                 Index a specific directory
   tags --stats                      Show index statistics
   tags --max-files <N>              Limit files to index (default: 10000)`,
-        args: {
-          command: z.string().describe("The tags command and args (e.g. '--stats', 'ImpactAnalyzer', '--json')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The tags command and args (e.g. '--stats', 'ImpactAnalyzer', '--json')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^tags\s+/, "");
@@ -37,7 +34,7 @@ Usage:
             return `tags error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

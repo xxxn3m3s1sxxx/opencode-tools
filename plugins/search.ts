@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      search: tool({
+export default {
+  id: "search",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "search",
         description: `Rich grep wrapper with Regex, file filters, and context lines.
 
 Usage:
@@ -21,10 +20,8 @@ Examples:
   search "def main"                  Find all Python main function defs
   search "from .* import" --include *.py
   search "TODO|FIXME" --context 2`,
-        args: {
-          command: z.string().describe("The search command and args (e.g. 'def main', '\"from .* import\" --include *.py', 'TODO --context 2')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The search command and args (e.g. 'def main', '\"from .* import\" --include *.py', 'TODO --context 2')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^search\s+/, "");
@@ -40,7 +37,7 @@ Examples:
             return `search error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

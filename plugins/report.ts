@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      report: tool({
+export default {
+  id: "report",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "report",
         description: `Project health report. Combines check + audit + fmt + churn + health.
 
 Usage:
@@ -15,10 +14,8 @@ Usage:
   report --quick                  Skip slow checks
   report --json                   JSON output
   report --output <file>          Write to file`,
-        args: {
-          command: z.string().describe("The report command and args (e.g. '--quick', '--json')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The report command and args (e.g. '--quick', '--json')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^report\s+/, "");
@@ -34,7 +31,7 @@ Usage:
             return `report error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

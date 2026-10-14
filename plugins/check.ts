@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      check: tool({
+export default {
+  id: "check",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "check",
         description: `Pre-commit gate. Run lint → mypy → tests, exit 0 only if all pass.
 
 Usage:
@@ -17,10 +16,8 @@ Usage:
   check --test                      Tests only (pytest)
   check --quick                     Skip tests (lint + mypy only)
   check --json                      JSON output`,
-        args: {
-          command: z.string().describe("The check command and args (e.g. '--quick', '--lint', '--json')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The check command and args (e.g. '--quick', '--lint', '--json')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^check\s+/, "");
@@ -36,7 +33,7 @@ Usage:
             return `check error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

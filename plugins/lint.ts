@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      lint: tool({
+export default {
+  id: "lint",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "lint",
         description: `Run project lint/typecheck and parse output into structured results.
 
 Usage:
@@ -21,10 +20,8 @@ Examples:
   lint ruff                       Run ruff on current project
   lint tsc                        Run TypeScript type check
   lint --json                     Machine-readable output`,
-        args: {
-          command: z.string().describe("The lint command and args (e.g. '', 'ruff', 'tsc', 'ruff src/main.py', '--json')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The lint command and args (e.g. '', 'ruff', 'tsc', 'ruff src/main.py', '--json')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^lint\s+/, "");
@@ -41,7 +38,7 @@ Examples:
             return `lint error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+

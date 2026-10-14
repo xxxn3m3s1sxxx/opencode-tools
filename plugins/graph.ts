@@ -1,13 +1,12 @@
-import type { Plugin } from "@opencode-ai/plugin"
-import { tool } from "@opencode-ai/plugin"
 import { spawnSync } from "child_process"
 import { detectPython, splitArgs, findToolPy } from "./utils.ts"
+import { registerTool, commandSchema } from "./utils.ts"
 
-export default async (ctx: any) => {
-  const z = tool.schema
-  return {
-    tool: {
-      graph: tool({
+export default {
+  id: "graph",
+  async setup(ctx: any) {
+    await registerTool(ctx, {
+        name: "graph",
         description: `File-level dependency analyzer. Show imports, dependents, and cycles.
 
 Usage:
@@ -22,10 +21,8 @@ Examples:
   graph src/main.py             Deps of main.py
   graph src/utils.py --tree     Full dependency tree
   graph --circular              Find cycles`,
-        args: {
-          command: z.string().describe("The graph command and args (e.g. 'src/main.py', 'src/utils.py --tree', '--circular')"),
-        },
-        async execute({ command }: { command: string }, ctx: any) {
+        input: commandSchema("The graph command and args (e.g. 'src/main.py', 'src/utils.py --tree', '--circular')"),
+        async run({ command }: { command: string }, ctx: any) {
           try {
             const cwd = ctx?.cwd || process.cwd();
             const raw = command.trim().replace(/^graph\s+/, "");
@@ -41,7 +38,7 @@ Examples:
             return `graph error: ${err.message}`;
           }
         },
-      }),
-    },
-  };
+    })
+  },
 }
+
